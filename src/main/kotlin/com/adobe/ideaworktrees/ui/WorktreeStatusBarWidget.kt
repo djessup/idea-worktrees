@@ -6,6 +6,7 @@ import com.intellij.ide.impl.ProjectUtil
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -15,6 +16,7 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.impl.status.EditorBasedStatusBarPopup
 import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.Icon
 
 /**
@@ -29,6 +31,15 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
 
     private val service: GitWorktreeService = GitWorktreeService.getInstance(project)
 
+    // Cache for worktree information to avoid blocking calls in ReadAction
+    private val cachedWorktrees = AtomicReference<List<WorktreeInfo>>(emptyList())
+    private val cachedCurrentWorktree = AtomicReference<WorktreeInfo?>(null)
+
+    init {
+        // Initialize cache asynchronously
+        updateCacheAsync()
+    }
+
     override fun ID(): String = ID
 
     override fun createInstance(project: Project): StatusBarWidget {
@@ -40,7 +51,8 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             return WidgetState.HIDDEN
         }
 
-        val currentWorktree = service.getCurrentWorktree()
+        // Use cached value to avoid blocking
+        val currentWorktree = cachedCurrentWorktree.get()
         val text = currentWorktree?.displayName ?: EMPTY_TEXT
         val tooltip = currentWorktree?.let {
             buildTooltip(it)
@@ -54,8 +66,13 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             return null
         }
 
-        val worktrees = service.listWorktrees()
-        val currentWorktree = service.getCurrentWorktree()
+        // Refresh cache before showing popup
+        updateCacheAsync {
+            // Cache will be updated, but we'll use current values for this popup
+        }
+
+        val worktrees = cachedWorktrees.get()
+        val currentWorktree = cachedCurrentWorktree.get()
 
         val items = mutableListOf<WorktreePopupItem>()
 
@@ -73,7 +90,7 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
         items.add(WorktreePopupItem.Action("Manage Worktrees..."))
 
         return JBPopupFactory.getInstance().createListPopup(
-            WorktreePopupStep(items, project)
+            WorktreePopupStep(items, project, this)
         )
     }
 
@@ -85,6 +102,31 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             }
             append("\nCommit: ${worktree.commit.take(7)}")
             append("\nPath: ${worktree.path}")
+        }
+    }
+
+    /**
+     * Updates the worktree cache asynchronously on a background thread.
+     */
+    private fun updateCacheAsync(onComplete: (() -> Unit)? = null) {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                if (service.isGitRepository()) {
+                    val worktrees = service.listWorktrees()
+                    val current = service.getCurrentWorktree()
+
+                    cachedWorktrees.set(worktrees)
+                    cachedCurrentWorktree.set(current)
+
+                    // Update the widget display on EDT
+                    ApplicationManager.getApplication().invokeLater({
+                        update()
+                        onComplete?.invoke()
+                    }, ModalityState.nonModal())
+                }
+            } catch (e: Exception) {
+                // Silently ignore errors - widget will show cached or empty state
+            }
         }
     }
 
@@ -102,7 +144,8 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
      */
     private class WorktreePopupStep(
         items: List<WorktreePopupItem>,
-        private val project: Project
+        private val project: Project,
+        private val widget: WorktreeStatusBarWidget
     ) : BaseListPopupStep<WorktreePopupItem>("Git Worktrees", items) {
 
         override fun getTextFor(value: WorktreePopupItem): String {
@@ -202,6 +245,9 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                 val worktreePath = parentPath.resolve(dirName)
 
                 service.createWorktree(worktreePath, branchName, true)
+
+                // Refresh the cache after creating worktree
+                widget.updateCacheAsync()
 
                 NotificationGroupManager.getInstance()
                     .getNotificationGroup("Git Worktree")

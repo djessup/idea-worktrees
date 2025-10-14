@@ -86,5 +86,5 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 **Next Steps:**
 1. Manual testing in IDE using `./gradlew runIde`
 2. Fix test framework issues and add proper tests
-3. Consider adding rename, compare, and merge actions (optional enhancements)
+3. Add rename, compare, and merge actions
 4. Test with real Git repositories and worktrees
