@@ -99,6 +99,7 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 - Improve manage worktrees to list worktrees in a table/list view with buttons to add/remove/compare/etc.
 - Add support for comparing and merging worktrees using VCS compare view
 - Add keyboard shortcuts for common actions
+- Add tests
 
 ## Contributing
 

@@ -1,6 +1,7 @@
 package com.adobe.ideaworktrees.services
 
 import com.adobe.ideaworktrees.model.WorktreeInfo
+import com.adobe.ideaworktrees.model.WorktreeOperationResult
 import com.intellij.dvcs.repo.VcsRepositoryManager
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessOutput
@@ -68,10 +69,11 @@ class GitWorktreeService(private val project: Project) {
      * @param path The path where the worktree should be created
      * @param branch The branch to checkout in the new worktree
      * @param createBranch Whether to create a new branch (true) or use an existing one (false)
-     * @return true if the worktree was created successfully, false otherwise
+     * @return WorktreeOperationResult indicating success or failure with details
      */
-    fun createWorktree(path: Path, branch: String, createBranch: Boolean = true): Boolean {
-        val projectPath = getProjectPath() ?: return false
+    fun createWorktree(path: Path, branch: String, createBranch: Boolean = true): WorktreeOperationResult {
+        val projectPath = getProjectPath()
+            ?: return WorktreeOperationResult.Failure("Project path not found")
 
         return try {
             // Check if repository has commits
@@ -100,15 +102,22 @@ class GitWorktreeService(private val project: Project) {
 
             val output = executeGitCommand(projectPath, *args.toTypedArray())
             if (output.exitCode != 0) {
-                LOG.warn("Failed to create worktree: ${output.stderr}")
-                return false
+                val errorMsg = output.stderr.trim().ifEmpty { "Unknown error" }
+                LOG.warn("Failed to create worktree: $errorMsg")
+                return WorktreeOperationResult.Failure(
+                    "Failed to create worktree",
+                    errorMsg
+                )
             }
 
             LOG.info("Created worktree at $path for branch $branch")
-            true
+            WorktreeOperationResult.Success("Created worktree '$branch' at $path")
         } catch (e: Exception) {
             LOG.error("Error creating worktree", e)
-            false
+            WorktreeOperationResult.Failure(
+                "Error creating worktree",
+                e.message ?: "Unknown error"
+            )
         }
     }
 
@@ -129,29 +138,37 @@ class GitWorktreeService(private val project: Project) {
      *
      * @param path The path of the worktree to delete
      * @param force Whether to force deletion even if the worktree is dirty
-     * @return true if the worktree was deleted successfully, false otherwise
+     * @return WorktreeOperationResult indicating success or failure with details
      */
-    fun deleteWorktree(path: Path, force: Boolean = false): Boolean {
-        val projectPath = getProjectPath() ?: return false
-        
+    fun deleteWorktree(path: Path, force: Boolean = false): WorktreeOperationResult {
+        val projectPath = getProjectPath()
+            ?: return WorktreeOperationResult.Failure("Project path not found")
+
         return try {
             val args = mutableListOf("worktree", "remove")
             if (force) {
                 args.add("--force")
             }
             args.add(path.toString())
-            
+
             val output = executeGitCommand(projectPath, *args.toTypedArray())
             if (output.exitCode != 0) {
-                LOG.warn("Failed to delete worktree: ${output.stderr}")
-                return false
+                val errorMsg = output.stderr.trim().ifEmpty { "Unknown error" }
+                LOG.warn("Failed to delete worktree: $errorMsg")
+                return WorktreeOperationResult.Failure(
+                    "Failed to delete worktree",
+                    errorMsg
+                )
             }
-            
+
             LOG.info("Deleted worktree at $path")
-            true
+            WorktreeOperationResult.Success("Deleted worktree at $path")
         } catch (e: Exception) {
             LOG.error("Error deleting worktree", e)
-            false
+            WorktreeOperationResult.Failure(
+                "Error deleting worktree",
+                e.message ?: "Unknown error"
+            )
         }
     }
 
@@ -160,11 +177,12 @@ class GitWorktreeService(private val project: Project) {
      *
      * @param oldPath The current path of the worktree
      * @param newPath The new path for the worktree
-     * @return true if the worktree was moved successfully, false otherwise
+     * @return WorktreeOperationResult indicating success or failure with details
      */
-    fun moveWorktree(oldPath: Path, newPath: Path): Boolean {
-        val projectPath = getProjectPath() ?: return false
-        
+    fun moveWorktree(oldPath: Path, newPath: Path): WorktreeOperationResult {
+        val projectPath = getProjectPath()
+            ?: return WorktreeOperationResult.Failure("Project path not found")
+
         return try {
             val output = executeGitCommand(
                 projectPath,
@@ -172,17 +190,24 @@ class GitWorktreeService(private val project: Project) {
                 oldPath.toString(),
                 newPath.toString()
             )
-            
+
             if (output.exitCode != 0) {
-                LOG.warn("Failed to move worktree: ${output.stderr}")
-                return false
+                val errorMsg = output.stderr.trim().ifEmpty { "Unknown error" }
+                LOG.warn("Failed to move worktree: $errorMsg")
+                return WorktreeOperationResult.Failure(
+                    "Failed to move worktree",
+                    errorMsg
+                )
             }
-            
+
             LOG.info("Moved worktree from $oldPath to $newPath")
-            true
+            WorktreeOperationResult.Success("Moved worktree from $oldPath to $newPath")
         } catch (e: Exception) {
             LOG.error("Error moving worktree", e)
-            false
+            WorktreeOperationResult.Failure(
+                "Error moving worktree",
+                e.message ?: "Unknown error"
+            )
         }
     }
 

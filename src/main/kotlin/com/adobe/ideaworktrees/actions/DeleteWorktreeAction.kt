@@ -118,37 +118,35 @@ class DeleteWorktreeAction : AnAction(), DumbAware {
 
         // Delete the worktree on background thread
         ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                val success = service.deleteWorktree(worktree.path, force)
+            val result = service.deleteWorktree(worktree.path, force)
 
-                // Show result on EDT
-                ApplicationManager.getApplication().invokeLater({
-                    if (success) {
-                        NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Worktree deleted successfully",
-                                "Deleted worktree at ${worktree.path}",
-                                NotificationType.INFORMATION
-                            )
-                            .notify(project)
-                    } else {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to delete worktree. Check the IDE log for details.",
-                            "Error Deleting Worktree"
+            // Show result on EDT
+            ApplicationManager.getApplication().invokeLater({
+                if (result.isSuccess) {
+                    NotificationGroupManager.getInstance()
+                        .getNotificationGroup("Git Worktree")
+                        .createNotification(
+                            "Worktree Deleted",
+                            result.getSuccessMessage() ?: "Deleted worktree successfully",
+                            NotificationType.INFORMATION
                         )
+                        .notify(project)
+                } else {
+                    val errorMsg = result.getErrorMessage() ?: "Failed to delete worktree"
+                    val details = result.getErrorDetails()
+                    val fullMessage = if (details != null) {
+                        "$errorMsg\n\nDetails: $details"
+                    } else {
+                        errorMsg
                     }
-                }, ModalityState.nonModal())
-            } catch (e: Exception) {
-                ApplicationManager.getApplication().invokeLater({
+
                     Messages.showErrorDialog(
                         project,
-                        "Failed to delete worktree: ${e.message}",
+                        fullMessage,
                         "Error Deleting Worktree"
                     )
-                }, ModalityState.nonModal())
-            }
+                }
+            }, ModalityState.nonModal())
         }
     }
 

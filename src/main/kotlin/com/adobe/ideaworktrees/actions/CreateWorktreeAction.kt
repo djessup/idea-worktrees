@@ -66,49 +66,47 @@ class CreateWorktreeAction : AnAction(), DumbAware {
         // Execute Git command on background thread
         ApplicationManager.getApplication().executeOnPooledThread {
             val service = GitWorktreeService.getInstance(project)
-            try {
-                val success = service.createWorktree(worktreePath, branchName, createBranch = true)
+            val result = service.createWorktree(worktreePath, branchName, createBranch = true)
 
-                // Show result on EDT
-                ApplicationManager.getApplication().invokeLater({
-                    if (success) {
-                        NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Worktree created successfully",
-                                "Created worktree '$worktreeName' with branch '$branchName' at $worktreePath",
-                                NotificationType.INFORMATION
-                            )
-                            .notify(project)
-
-                        // Ask if user wants to open the new worktree
-                        val openWorktree = Messages.showYesNoDialog(
-                            project,
-                            "Would you like to open the new worktree in a new window?",
-                            "Open Worktree",
-                            Messages.getQuestionIcon()
+            // Show result on EDT
+            ApplicationManager.getApplication().invokeLater({
+                if (result.isSuccess) {
+                    NotificationGroupManager.getInstance()
+                        .getNotificationGroup("Git Worktree")
+                        .createNotification(
+                            "Worktree Created",
+                            result.getSuccessMessage() ?: "Created worktree successfully",
+                            NotificationType.INFORMATION
                         )
+                        .notify(project)
 
-                        if (openWorktree == Messages.YES) {
-                            ProjectUtil.openOrImport(worktreePath, project, false)
-                        }
-                    } else {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to create worktree. Check the IDE log for details.",
-                            "Error Creating Worktree"
-                        )
+                    // Ask if user wants to open the new worktree
+                    val openWorktree = Messages.showYesNoDialog(
+                        project,
+                        "Would you like to open the new worktree in a new window?",
+                        "Open Worktree",
+                        Messages.getQuestionIcon()
+                    )
+
+                    if (openWorktree == Messages.YES) {
+                        ProjectUtil.openOrImport(worktreePath, project, false)
                     }
-                }, ModalityState.nonModal())
-            } catch (e: Exception) {
-                ApplicationManager.getApplication().invokeLater({
+                } else {
+                    val errorMsg = result.getErrorMessage() ?: "Failed to create worktree"
+                    val details = result.getErrorDetails()
+                    val fullMessage = if (details != null) {
+                        "$errorMsg\n\nDetails: $details"
+                    } else {
+                        errorMsg
+                    }
+
                     Messages.showErrorDialog(
                         project,
-                        "Failed to create worktree: ${e.message}",
+                        fullMessage,
                         "Error Creating Worktree"
                     )
-                }, ModalityState.nonModal())
-            }
+                }
+            }, ModalityState.nonModal())
         }
     }
 

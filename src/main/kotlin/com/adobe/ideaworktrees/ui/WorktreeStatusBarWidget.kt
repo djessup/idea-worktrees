@@ -245,46 +245,53 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             // Execute Git command on background thread
             ApplicationManager.getApplication().executeOnPooledThread {
                 val service = GitWorktreeService.getInstance(project)
-                try {
-                    service.createWorktree(worktreePath, branchName, true)
+                val result = service.createWorktree(worktreePath, branchName, true)
 
-                    // Refresh the cache after creating worktree
-                    widget.updateCacheAsync()
+                // Refresh the cache after creating worktree
+                widget.updateCacheAsync()
 
-                    // Show success notification and ask about opening on EDT
-                    ApplicationManager.getApplication().invokeLater({
+                // Show result on EDT
+                ApplicationManager.getApplication().invokeLater({
+                    if (result.isSuccess) {
                         NotificationGroupManager.getInstance()
                             .getNotificationGroup("Git Worktree")
                             .createNotification(
-                                "Worktree created successfully at: $worktreePath",
+                                "Worktree Created",
+                                result.getSuccessMessage() ?: "Worktree created successfully",
                                 NotificationType.INFORMATION
                             )
                             .notify(project)
 
                         // Ask if user wants to open the new worktree
-                        val result = Messages.showYesNoDialog(
+                        val openResult = Messages.showYesNoDialog(
                             project,
-                            "Worktree created successfully. Do you want to open it in a new window?",
+                            "Do you want to open the new worktree in a new window?",
                             "Open Worktree",
                             Messages.getQuestionIcon()
                         )
 
-                        if (result == Messages.YES) {
+                        if (openResult == Messages.YES) {
                             ProjectUtil.openOrImport(worktreePath, project, false)
                         }
-                    }, ModalityState.nonModal())
-                } catch (e: Exception) {
-                    // Show error notification on EDT
-                    ApplicationManager.getApplication().invokeLater({
+                    } else {
+                        val errorMsg = result.getErrorMessage() ?: "Failed to create worktree"
+                        val details = result.getErrorDetails()
+                        val fullMessage = if (details != null) {
+                            "$errorMsg\n\nDetails: $details"
+                        } else {
+                            errorMsg
+                        }
+
                         NotificationGroupManager.getInstance()
                             .getNotificationGroup("Git Worktree")
                             .createNotification(
-                                "Failed to create worktree: ${e.message}",
+                                "Error Creating Worktree",
+                                fullMessage,
                                 NotificationType.ERROR
                             )
                             .notify(project)
-                    }, ModalityState.nonModal())
-                }
+                    }
+                }, ModalityState.nonModal())
             }
         }
 
