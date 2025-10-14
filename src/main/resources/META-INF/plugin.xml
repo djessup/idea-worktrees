@@ -5,16 +5,27 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>Idea-worktrees</name>
+    <name>Git Worktree Manager</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
+    <vendor url="https://www.adobe.com">Adobe</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+        <p>Provides ergonomic support for working with multiple Git worktrees in a single project.</p>
+
+        <h3>Features:</h3>
+        <ul>
+            <li>Status bar widget showing the current worktree</li>
+            <li>Create new worktrees with custom branches</li>
+            <li>Switch between worktrees easily</li>
+            <li>Delete worktrees safely</li>
+            <li>View all worktrees in the repository</li>
+        </ul>
+
+        <p>Git worktrees allow you to check out multiple branches simultaneously in different directories,
+        making it easy to work on multiple features or bug fixes without switching branches.</p>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
