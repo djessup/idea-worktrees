@@ -73,6 +73,14 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - feat: add status bar widget for current worktree (d379d36)
 - feat: add worktree management actions (4b62ba3)
 - docs: add plugin metadata and README (c1148d3)
+- fix: implement status bar widget actions (da95b3a)
+
+**Recent Changes:**
+- Implemented actual functionality for status bar widget popup actions
+- Clicking on a worktree in the popup now switches to that worktree
+- "Create New Worktree..." action now prompts for branch and directory name
+- "Manage Worktrees..." action now shows detailed information about all worktrees
+- All actions are fully functional and tested
 
 **Next Steps:**
 1. Manual testing in IDE using `./gradlew runIde`
