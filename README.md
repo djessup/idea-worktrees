@@ -11,9 +11,26 @@ An IntelliJ IDEA plugin that provides ergonomic support for working with multipl
 
 ### Worktree Operations
 - **Create New Worktree**: Create a new worktree with a custom branch
+  - Visual folder browser for selecting worktree location
+  - Auto-suggests path as `../[project-name]-[branch-name]`
+  - Input validation for branch name and path
 - **Switch Worktree**: Switch to a different worktree (opens in new window)
-- **Delete Worktree**: Safely delete a worktree
-- **Show All Worktrees**: View information about all worktrees in the repository
+- **Delete Worktree**: Safely delete a worktree with confirmation
+- **Manage Worktrees**: View all worktrees in a table with detailed information
+  - Table view showing name, branch, path, commit, and status
+  - Open, delete, and refresh operations
+  - Visual indication of current worktree
+
+### Keyboard Shortcuts
+- `Ctrl+Alt+W, C` - Create New Worktree
+- `Ctrl+Alt+W, S` - Switch Worktree
+- `Ctrl+Alt+W, D` - Delete Worktree
+- `Ctrl+Alt+W, M` - Manage Worktrees
+
+### Error Handling
+- Detailed error messages from Git operations
+- Clear success/failure feedback
+- Handles edge cases like repositories with no commits
 
 ## What are Git Worktrees?
 
@@ -26,26 +43,36 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 ## Usage
 
 ### Creating a Worktree
-1. Go to **VCS > Git Worktrees > Create New Worktree...**
+1. Go to **VCS > Git Worktrees > Create New Worktree...** or press `Ctrl+Alt+W, C`
 2. Enter the branch name for the new worktree
-3. Enter the directory name for the worktree
-4. The plugin will create the worktree in a sibling directory to your current project
+3. Choose the worktree path using the folder browser (defaults to `../[project-name]-[branch-name]`)
+4. Click OK to create the worktree
+5. Optionally open the new worktree in a new window
 
 ### Switching Worktrees
 1. Click on the worktree name in the status bar, or
-2. Go to **VCS > Git Worktrees > Switch Worktree...**
+2. Go to **VCS > Git Worktrees > Switch Worktree...** or press `Ctrl+Alt+W, S`
 3. Select the worktree you want to switch to
 4. The plugin will open the worktree in a new window
 
 ### Deleting a Worktree
-1. Go to **VCS > Git Worktrees > Delete Worktree...**
+1. Go to **VCS > Git Worktrees > Delete Worktree...** or press `Ctrl+Alt+W, D`
 2. Select the worktree you want to delete
 3. Confirm the deletion
 4. The plugin will remove the worktree directory and clean up Git metadata
 
-### Viewing All Worktrees
-1. Go to **VCS > Git Worktrees > Show All Worktrees**
-2. A dialog will show all worktrees with their paths, branches, and status
+### Managing Worktrees
+1. Go to **VCS > Git Worktrees > Show All Worktrees** or press `Ctrl+Alt+W, M`
+2. A table will show all worktrees with detailed information:
+   - Name (with asterisk marking current worktree)
+   - Branch
+   - Path
+   - Commit hash
+   - Status (MAIN, LOCKED, PRUNABLE)
+3. Use the buttons to:
+   - **Open**: Open the selected worktree in a new window
+   - **Delete**: Delete the selected worktree
+   - **Refresh**: Reload the worktree list
 
 ## Requirements
 
@@ -93,13 +120,23 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 - **Actions**: Individual actions for worktree operations (create, switch, delete, manage)
 
 ## Roadmap
+
+### Completed
+- ✅ Use folder browser for worktree path input, default to "../[project name]-[branch name]"
+- ✅ Detect failures and show proper error messages
+- ✅ Improve manage worktrees to list worktrees in a table/list view with buttons
+- ✅ Add keyboard shortcuts for common actions
+
+### Future Enhancements
 - Use IntelliJ VCS APIs instead of `GeneralCommandLine` for Git operations
-- Use folder browser for worktree path input, default to "../[project name]-[branch name]"
-- Detect failures and show proper error messages instead of messages like: "Worktree created successfully.", when it was not created successfully.
-- Improve manage worktrees to list worktrees in a table/list view with buttons to add/remove/compare/etc.
 - Add support for comparing and merging worktrees using VCS compare view
-- Add keyboard shortcuts for common actions
-- Add tests
+- Add full test coverage
+- Add rename worktree functionality
+- Add worktree pruning action
+- Add support for worktree locking/unlocking
+
+## Bugs
+- Sometimes status bar widget does not appear when IDE starts up, requires the widget to be 
 
 ## Contributing
 
