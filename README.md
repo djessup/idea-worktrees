@@ -95,7 +95,9 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 ## Roadmap
 - Use IntelliJ VCS APIs instead of `GeneralCommandLine` for Git operations
 - Use folder browser for worktree path input, default to "../[project name]-[branch name]"
-- Add support for comparing and merging worktrees using 
+- Detect failures and show proper error messages instead of messages like: "Worktree created successfully.", when it was not created successfully.
+- Improve manage worktrees to list worktrees in a table/list view with buttons to add/remove/compare/etc.
+- Add support for comparing and merging worktrees using VCS compare view
 - Add keyboard shortcuts for common actions
 
 ## Contributing

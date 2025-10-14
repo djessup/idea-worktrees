@@ -74,17 +74,28 @@ class GitWorktreeService(private val project: Project) {
         val projectPath = getProjectPath() ?: return false
 
         return try {
+            // Check if repository has commits
+            val hasCommits = hasCommits(projectPath)
+
             val args = mutableListOf("worktree", "add")
+
             if (createBranch) {
-                args.add("-b")
-                args.add(branch)
-            }
-            args.add(path.toString())
-            if (!createBranch) {
-                args.add(branch)
+                if (hasCommits) {
+                    // Normal case: create new branch from HEAD
+                    args.add("-b")
+                    args.add(branch)
+                    args.add(path.toString())
+                    args.add("HEAD")
+                } else {
+                    // Repository has no commits: create orphan branch
+                    args.add("--orphan")
+                    args.add(branch)
+                    args.add(path.toString())
+                }
             } else {
-                // When creating a new branch, specify HEAD as the start point
-                args.add("HEAD")
+                // Checkout existing branch
+                args.add(path.toString())
+                args.add(branch)
             }
 
             val output = executeGitCommand(projectPath, *args.toTypedArray())
@@ -97,6 +108,18 @@ class GitWorktreeService(private val project: Project) {
             true
         } catch (e: Exception) {
             LOG.error("Error creating worktree", e)
+            false
+        }
+    }
+
+    /**
+     * Checks if the repository has any commits.
+     */
+    private fun hasCommits(projectPath: Path): Boolean {
+        return try {
+            val output = executeGitCommand(projectPath, "rev-parse", "HEAD")
+            output.exitCode == 0
+        } catch (e: Exception) {
             false
         }
     }
