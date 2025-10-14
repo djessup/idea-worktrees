@@ -74,12 +74,13 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - feat: add worktree management actions (4b62ba3)
 - docs: add plugin metadata and README (c1148d3)
 - fix: implement status bar widget actions (da95b3a)
+- fix: avoid blocking Git commands in ReadAction (a5db92a)
 
 **Recent Changes:**
-- Implemented actual functionality for status bar widget popup actions
-- Clicking on a worktree in the popup now switches to that worktree
-- "Create New Worktree..." action now prompts for branch and directory name
-- "Manage Worktrees..." action now shows detailed information about all worktrees
+- Fixed "Synchronous execution under ReadAction" error
+- Added Git4Idea plugin dependency to build.gradle.kts
+- Replaced direct Git command execution with IntelliJ VCS APIs in isGitRepository()
+- Status bar widget now safely checks for Git repository without blocking the UI thread
 - All actions are fully functional and tested
 
 **Next Steps:**
