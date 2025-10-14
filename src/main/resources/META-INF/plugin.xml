@@ -61,24 +61,32 @@
             <action id="com.adobe.ideaworktrees.CreateWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.CreateWorktreeAction"
                     text="Create New Worktree..."
-                    description="Create a new Git worktree"/>
+                    description="Create a new Git worktree">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="C"/>
+            </action>
 
             <action id="com.adobe.ideaworktrees.SwitchWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.SwitchWorktreeAction"
                     text="Switch Worktree..."
-                    description="Switch to a different Git worktree"/>
+                    description="Switch to a different Git worktree">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="S"/>
+            </action>
 
             <action id="com.adobe.ideaworktrees.DeleteWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.DeleteWorktreeAction"
                     text="Delete Worktree..."
-                    description="Delete a Git worktree"/>
+                    description="Delete a Git worktree">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="D"/>
+            </action>
 
             <separator/>
 
             <action id="com.adobe.ideaworktrees.ManageWorktreesAction"
                     class="com.adobe.ideaworktrees.actions.ManageWorktreesAction"
                     text="Show All Worktrees"
-                    description="Show information about all Git worktrees"/>
+                    description="Show information about all Git worktrees">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="M"/>
+            </action>
 
             <!-- Add to VCS menu -->
             <add-to-group group-id="VcsGroups" anchor="last"/>
