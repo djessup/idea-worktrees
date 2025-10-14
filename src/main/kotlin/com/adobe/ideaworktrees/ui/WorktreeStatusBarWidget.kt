@@ -257,7 +257,7 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                             .getNotificationGroup("Git Worktree")
                             .createNotification(
                                 "Worktree Created",
-                                result.getSuccessMessage() ?: "Worktree created successfully",
+                                result.successMessage() ?: "Worktree created successfully",
                                 NotificationType.INFORMATION
                             )
                             .notify(project)
@@ -274,8 +274,8 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                             ProjectUtil.openOrImport(worktreePath, project, false)
                         }
                     } else {
-                        val errorMsg = result.getErrorMessage() ?: "Failed to create worktree"
-                        val details = result.getErrorDetails()
+                        val errorMsg = result.errorMessage() ?: "Failed to create worktree"
+                        val details = result.errorDetails()
                         val fullMessage = if (details != null) {
                             "$errorMsg\n\nDetails: $details"
                         } else {

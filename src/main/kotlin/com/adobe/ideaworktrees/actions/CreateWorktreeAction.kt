@@ -9,9 +9,21 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.openapi.ui.DialogWrapper
+import java.awt.BorderLayout
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
+import java.awt.Insets
+import java.io.File
 import java.nio.file.Paths
+import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.JTextField
 
 /**
  * Action to create a new Git worktree.
@@ -21,37 +33,14 @@ class CreateWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
 
-        // Get branch name from user (on EDT)
-        val branchName = Messages.showInputDialog(
-            project,
-            "Enter the name for the new branch:",
-            "Create New Worktree",
-            Messages.getQuestionIcon()
-        ) ?: return
-
-        if (branchName.isBlank()) {
-            Messages.showErrorDialog(project, "Branch name cannot be empty", "Invalid Input")
+        // Show dialog to get branch name and worktree path
+        val dialog = CreateWorktreeDialog(project)
+        if (!dialog.showAndGet()) {
             return
         }
 
-        // Get worktree path from user (on EDT)
-        val worktreeName = Messages.showInputDialog(
-            project,
-            "Enter the name for the new worktree directory:",
-            "Create New Worktree",
-            Messages.getQuestionIcon(),
-            branchName,
-            null
-        ) ?: return
-
-        if (worktreeName.isBlank()) {
-            Messages.showErrorDialog(project, "Worktree name cannot be empty", "Invalid Input")
-            return
-        }
-
-        // Create worktree path relative to project
-        val projectPath = Paths.get(project.basePath ?: return)
-        val worktreePath = projectPath.parent.resolve(worktreeName)
+        val branchName = dialog.getBranchName()
+        val worktreePath = Paths.get(dialog.getWorktreePath())
 
         // Check if path already exists
         if (worktreePath.toFile().exists()) {
@@ -75,7 +64,7 @@ class CreateWorktreeAction : AnAction(), DumbAware {
                         .getNotificationGroup("Git Worktree")
                         .createNotification(
                             "Worktree Created",
-                            result.getSuccessMessage() ?: "Created worktree successfully",
+                            result.successMessage() ?: "Created worktree successfully",
                             NotificationType.INFORMATION
                         )
                         .notify(project)
@@ -92,8 +81,8 @@ class CreateWorktreeAction : AnAction(), DumbAware {
                         ProjectUtil.openOrImport(worktreePath, project, false)
                     }
                 } else {
-                    val errorMsg = result.getErrorMessage() ?: "Failed to create worktree"
-                    val details = result.getErrorDetails()
+                    val errorMsg = result.errorMessage() ?: "Failed to create worktree"
+                    val details = result.errorDetails()
                     val fullMessage = if (details != null) {
                         "$errorMsg\n\nDetails: $details"
                     } else {
@@ -124,5 +113,104 @@ class CreateWorktreeAction : AnAction(), DumbAware {
     override fun getActionUpdateThread(): ActionUpdateThread {
         return ActionUpdateThread.BGT
     }
+}
+
+/**
+ * Dialog for creating a new worktree with branch name and path selection.
+ */
+private class CreateWorktreeDialog(private val project: com.intellij.openapi.project.Project) : DialogWrapper(project) {
+    private val branchNameField = JTextField(20)
+    private val pathField = TextFieldWithBrowseButton()
+
+    init {
+        title = "Create New Worktree"
+
+        // Set up path browser
+        val descriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
+        descriptor.title = "Select Worktree Location"
+        descriptor.description = "Choose the parent directory for the new worktree"
+        @Suppress("DEPRECATION")
+        pathField.addBrowseFolderListener(
+            "Select Worktree Location",
+            "Choose the parent directory for the new worktree",
+            project,
+            descriptor
+        )
+
+        // Set default path to parent of current project
+        val projectPath = project.basePath?.let { File(it) }
+        val defaultParent = projectPath?.parentFile
+        if (defaultParent != null) {
+            pathField.text = defaultParent.absolutePath
+        }
+
+        // Update path when branch name changes
+        branchNameField.document.addDocumentListener(object : javax.swing.event.DocumentListener {
+            override fun insertUpdate(e: javax.swing.event.DocumentEvent?) = updateDefaultPath()
+            override fun removeUpdate(e: javax.swing.event.DocumentEvent?) = updateDefaultPath()
+            override fun changedUpdate(e: javax.swing.event.DocumentEvent?) = updateDefaultPath()
+        })
+
+        init()
+    }
+
+    private fun updateDefaultPath() {
+        val branchName = branchNameField.text.trim()
+        if (branchName.isNotEmpty()) {
+            val projectPath = project.basePath?.let { File(it) }
+            val projectName = projectPath?.name ?: "project"
+            val defaultParent = projectPath?.parentFile
+            if (defaultParent != null) {
+                val suggestedName = "$projectName-$branchName"
+                pathField.text = File(defaultParent, suggestedName).absolutePath
+            }
+        }
+    }
+
+    override fun createCenterPanel(): JComponent {
+        val panel = JPanel(GridBagLayout())
+        val gbc = GridBagConstraints()
+
+        gbc.gridx = 0
+        gbc.gridy = 0
+        gbc.anchor = GridBagConstraints.WEST
+        gbc.insets = Insets(5, 5, 5, 5)
+        panel.add(JLabel("Branch name:"), gbc)
+
+        gbc.gridx = 1
+        gbc.fill = GridBagConstraints.HORIZONTAL
+        gbc.weightx = 1.0
+        panel.add(branchNameField, gbc)
+
+        gbc.gridx = 0
+        gbc.gridy = 1
+        gbc.fill = GridBagConstraints.NONE
+        gbc.weightx = 0.0
+        panel.add(JLabel("Worktree path:"), gbc)
+
+        gbc.gridx = 1
+        gbc.fill = GridBagConstraints.HORIZONTAL
+        gbc.weightx = 1.0
+        panel.add(pathField, gbc)
+
+        return panel
+    }
+
+    override fun doValidate(): com.intellij.openapi.ui.ValidationInfo? {
+        val branchName = branchNameField.text.trim()
+        if (branchName.isEmpty()) {
+            return com.intellij.openapi.ui.ValidationInfo("Branch name cannot be empty", branchNameField)
+        }
+
+        val path = pathField.text.trim()
+        if (path.isEmpty()) {
+            return com.intellij.openapi.ui.ValidationInfo("Worktree path cannot be empty", pathField)
+        }
+
+        return null
+    }
+
+    fun getBranchName(): String = branchNameField.text.trim()
+    fun getWorktreePath(): String = pathField.text.trim()
 }
 

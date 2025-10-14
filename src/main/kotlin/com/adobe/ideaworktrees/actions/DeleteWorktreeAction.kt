@@ -127,13 +127,13 @@ class DeleteWorktreeAction : AnAction(), DumbAware {
                         .getNotificationGroup("Git Worktree")
                         .createNotification(
                             "Worktree Deleted",
-                            result.getSuccessMessage() ?: "Deleted worktree successfully",
+                            result.successMessage() ?: "Deleted worktree successfully",
                             NotificationType.INFORMATION
                         )
                         .notify(project)
                 } else {
-                    val errorMsg = result.getErrorMessage() ?: "Failed to delete worktree"
-                    val details = result.getErrorDetails()
+                    val errorMsg = result.errorMessage() ?: "Failed to delete worktree"
+                    val details = result.errorDetails()
                     val fullMessage = if (details != null) {
                         "$errorMsg\n\nDetails: $details"
                     } else {
