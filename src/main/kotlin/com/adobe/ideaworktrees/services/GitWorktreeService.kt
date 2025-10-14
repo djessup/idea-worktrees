@@ -72,21 +72,27 @@ class GitWorktreeService(private val project: Project) {
      */
     fun createWorktree(path: Path, branch: String, createBranch: Boolean = true): Boolean {
         val projectPath = getProjectPath() ?: return false
-        
+
         return try {
             val args = mutableListOf("worktree", "add")
             if (createBranch) {
                 args.add("-b")
+                args.add(branch)
             }
             args.add(path.toString())
-            args.add(branch)
-            
+            if (!createBranch) {
+                args.add(branch)
+            } else {
+                // When creating a new branch, specify HEAD as the start point
+                args.add("HEAD")
+            }
+
             val output = executeGitCommand(projectPath, *args.toTypedArray())
             if (output.exitCode != 0) {
                 LOG.warn("Failed to create worktree: ${output.stderr}")
                 return false
             }
-            
+
             LOG.info("Created worktree at $path for branch $branch")
             true
         } catch (e: Exception) {
