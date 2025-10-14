@@ -2,13 +2,19 @@ package com.adobe.ideaworktrees.ui
 
 import com.adobe.ideaworktrees.model.WorktreeInfo
 import com.adobe.ideaworktrees.services.GitWorktreeService
+import com.intellij.ide.impl.ProjectUtil
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.ListPopup
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.impl.status.EditorBasedStatusBarPopup
+import java.nio.file.Paths
 import javax.swing.Icon
 
 /**
@@ -133,32 +139,138 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             when (selectedValue) {
                 is WorktreePopupItem.WorktreeItem -> {
                     if (!selectedValue.isCurrent) {
-                        // TODO: Implement worktree switching
-                        // For now, just show a notification
-                        com.intellij.notification.NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Worktree switching not yet implemented",
-                                com.intellij.notification.NotificationType.INFORMATION
-                            )
-                            .notify(project)
+                        switchToWorktree(selectedValue.worktree)
                     }
                 }
                 is WorktreePopupItem.Action -> {
-                    // TODO: Implement actions
-                    com.intellij.notification.NotificationGroupManager.getInstance()
-                        .getNotificationGroup("Git Worktree")
-                        .createNotification(
-                            "Action '${selectedValue.text}' not yet implemented",
-                            com.intellij.notification.NotificationType.INFORMATION
-                        )
-                        .notify(project)
+                    handleAction(selectedValue.text)
                 }
                 is WorktreePopupItem.Separator -> {
                     // Do nothing for separator
                 }
             }
             return PopupStep.FINAL_CHOICE
+        }
+
+        private fun switchToWorktree(worktree: WorktreeInfo) {
+            ApplicationManager.getApplication().invokeLater {
+                try {
+                    ProjectUtil.openOrImport(worktree.path, project, false)
+                } catch (e: Exception) {
+                    NotificationGroupManager.getInstance()
+                        .getNotificationGroup("Git Worktree")
+                        .createNotification(
+                            "Failed to switch to worktree: ${e.message}",
+                            NotificationType.ERROR
+                        )
+                        .notify(project)
+                }
+            }
+        }
+
+        private fun handleAction(actionText: String) {
+            ApplicationManager.getApplication().invokeLater {
+                when (actionText) {
+                    "Create New Worktree..." -> createNewWorktree()
+                    "Manage Worktrees..." -> manageWorktrees()
+                }
+            }
+        }
+
+        private fun createNewWorktree() {
+            val service = GitWorktreeService.getInstance(project)
+
+            val branchName = Messages.showInputDialog(
+                project,
+                "Enter the branch name for the new worktree:",
+                "Create New Worktree",
+                Messages.getQuestionIcon()
+            ) ?: return
+
+            val dirName = Messages.showInputDialog(
+                project,
+                "Enter the directory name for the new worktree:",
+                "Create New Worktree",
+                Messages.getQuestionIcon(),
+                branchName,
+                null
+            ) ?: return
+
+            try {
+                val projectPath = Paths.get(project.basePath ?: return)
+                val parentPath = projectPath.parent
+                val worktreePath = parentPath.resolve(dirName)
+
+                service.createWorktree(worktreePath, branchName, true)
+
+                NotificationGroupManager.getInstance()
+                    .getNotificationGroup("Git Worktree")
+                    .createNotification(
+                        "Worktree created successfully at: $worktreePath",
+                        NotificationType.INFORMATION
+                    )
+                    .notify(project)
+
+                // Ask if user wants to open the new worktree
+                val result = Messages.showYesNoDialog(
+                    project,
+                    "Worktree created successfully. Do you want to open it in a new window?",
+                    "Open Worktree",
+                    Messages.getQuestionIcon()
+                )
+
+                if (result == Messages.YES) {
+                    ProjectUtil.openOrImport(worktreePath, project, false)
+                }
+            } catch (e: Exception) {
+                NotificationGroupManager.getInstance()
+                    .getNotificationGroup("Git Worktree")
+                    .createNotification(
+                        "Failed to create worktree: ${e.message}",
+                        NotificationType.ERROR
+                    )
+                    .notify(project)
+            }
+        }
+
+        private fun manageWorktrees() {
+            val service = GitWorktreeService.getInstance(project)
+            val worktrees = service.listWorktrees()
+
+            if (worktrees.isEmpty()) {
+                Messages.showInfoMessage(
+                    project,
+                    "No worktrees found in this repository.",
+                    "No Worktrees"
+                )
+                return
+            }
+
+            val currentWorktree = service.getCurrentWorktree()
+
+            val message = buildString {
+                appendLine("Git Worktrees:")
+                appendLine()
+                worktrees.forEach { worktree ->
+                    val isCurrent = worktree.path == currentWorktree?.path
+                    val marker = if (isCurrent) "* " else "  "
+                    appendLine("$marker${worktree.displayName}")
+                    appendLine("   Path: ${worktree.path}")
+                    if (worktree.branch != null) {
+                        appendLine("   Branch: ${worktree.branch}")
+                    }
+                    appendLine("   Commit: ${worktree.commit.take(7)}")
+                    if (worktree.isLocked) {
+                        appendLine("   Status: LOCKED")
+                    }
+                    if (worktree.isPrunable) {
+                        appendLine("   Status: PRUNABLE")
+                    }
+                    appendLine()
+                }
+            }
+
+            Messages.showInfoMessage(project, message, "Git Worktrees")
         }
 
         override fun isSelectable(value: WorktreePopupItem): Boolean {
