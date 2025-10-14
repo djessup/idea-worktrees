@@ -50,6 +50,68 @@ Modifications to this file must be made below this line. Do not modify or remove
 - Git Integration: Use IntelliJ's VCS APIs to interact with Git repositories and worktrees
 - Plugin Configuration: Register components in `plugin.xml` under `<extensions>` and `<actions>` sections
 
+**CRITICAL: Threading and Blocking Operations**
+
+IntelliJ Platform has strict threading requirements. Violating these causes errors and poor UX:
+
+1. **Never block the EDT (Event Dispatch Thread)**
+   - EDT is for UI updates only
+   - Blocking operations (I/O, network, Git commands) MUST run on background threads
+   - Error: "Synchronous execution on EDT"
+
+2. **Never block in ReadAction**
+   - ReadActions are for reading PSI/VFS data
+   - No blocking I/O allowed
+   - Error: "Synchronous execution under ReadAction"
+
+3. **Pattern for Git Commands:**
+   ```kotlin
+   // WRONG - blocks EDT
+   fun actionPerformed(e: AnActionEvent) {
+       val result = service.executeGitCommand() // BLOCKS!
+       showDialog(result)
+   }
+
+   // CORRECT - background thread
+   fun actionPerformed(e: AnActionEvent) {
+       // Get user input on EDT first
+       val input = Messages.showInputDialog(...)
+
+       // Execute blocking operation on background thread
+       ApplicationManager.getApplication().executeOnPooledThread {
+           try {
+               val result = service.executeGitCommand()
+
+               // Show UI on EDT
+               ApplicationManager.getApplication().invokeLater({
+                   showDialog(result)
+               }, ModalityState.nonModal())
+           } catch (e: Exception) {
+               // Handle errors on EDT
+               ApplicationManager.getApplication().invokeLater({
+                   showError(e.message)
+               }, ModalityState.nonModal())
+           }
+       }
+   }
+   ```
+
+4. **Pattern for Status Bar Widgets:**
+   - Cache data in AtomicReference
+   - Update cache on background thread
+   - Read from cache in getWidgetState() (called from ReadAction)
+
+5. **Pattern for Action update() methods:**
+   - Keep update() fast and non-blocking
+   - Don't call Git commands in update()
+   - Use cached state or simple checks only
+   - Set `getActionUpdateThread() = ActionUpdateThread.BGT`
+
+6. **Dependencies:**
+   - Add to build.gradle.kts: `bundledPlugin("Git4Idea")` (compile-time)
+   - Add to plugin.xml: `<depends>Git4Idea</depends>` (runtime)
+   - Both are required for Git4Idea classes to work
+
 ## Current Status: Initial Implementation Complete
 
 **Architecture Decisions:**
@@ -77,9 +139,14 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - fix: avoid blocking Git commands in ReadAction (a5db92a)
 - fix: cache worktree data to avoid blocking in ReadAction (ae14186)
 - fix: add Git4Idea plugin dependency to plugin.xml (188344d)
+- fix: run Git commands on background threads in actions (4931db7)
 
 **Recent Changes:**
 - Fixed all "Synchronous execution under ReadAction" errors
+- Fixed all "Synchronous execution on EDT" errors
+- Added comprehensive threading documentation to AGENTS.md
+- All Git commands now run on background threads using executeOnPooledThread()
+- UI updates properly scheduled on EDT using invokeLater()
 - Added Git4Idea plugin dependency to build.gradle.kts and plugin.xml
 - Replaced direct Git command execution with IntelliJ VCS APIs in isGitRepository()
 - Implemented caching mechanism for worktree data in status bar widget
