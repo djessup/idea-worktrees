@@ -140,6 +140,8 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - fix: cache worktree data to avoid blocking in ReadAction (ae14186)
 - fix: add Git4Idea plugin dependency to plugin.xml (188344d)
 - fix: run Git commands on background threads in actions (4931db7)
+- fix: correct git worktree add command argument order (16ab6a1)
+- fix: eliminate EDT violations and handle repositories with no commits (4a8790e)
 
 **Recent Changes:**
 - Fixed all "Synchronous execution under ReadAction" errors
@@ -154,6 +156,10 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - Status bar widget safely displays worktree info without blocking the UI thread
 - Fixed NoClassDefFoundError by declaring Git4Idea as runtime dependency
 - All actions are fully functional and tested
+- Fixed git worktree add command argument order (branch name before path)
+- Added support for repositories with no commits using --orphan flag
+- Eliminated remaining EDT violations in DeleteWorktreeAction and ManageWorktreesAction
+- Removed blocking Git calls from action update() methods
 
 **Next Steps:**
 1. Manual testing in IDE using `./gradlew runIde`
