@@ -26,5 +26,15 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- Git Worktree Service -->
         <projectService serviceImplementation="com.adobe.ideaworktrees.services.GitWorktreeService"/>
+
+        <!-- Status Bar Widget -->
+        <statusBarWidgetFactory id="com.adobe.ideaworktrees.WorktreeStatusBarWidgetFactory"
+                                implementation="com.adobe.ideaworktrees.ui.WorktreeStatusBarWidgetFactory"
+                                order="after vcsWidget"/>
+
+        <!-- Notification Group -->
+        <notificationGroup id="Git Worktree"
+                           displayType="BALLOON"
+                           isLogByDefault="true"/>
     </extensions>
 </idea-plugin>

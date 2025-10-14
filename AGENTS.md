@@ -32,7 +32,7 @@ the ability to revert to a previous state if needed. Use Conventional Commits fo
 For more information on how to develop an IntelliJ plugin, refer to the documentation at:
 https://plugins.jetbrains.com/docs/intellij/welcome.html
 
-You should update this AGENTS.md file regularly to record important decisions and learnings that support your short-term
+You should update AGENTS.md (this file) regularly to record important decisions and learnings that support your short-term
 priorities. Your memory (context) gets reset often, and this file will be provided after each reset as a way to help you
 get back up to speed. Use it to help yourself be the best plugin-writing agent you can be!
 
