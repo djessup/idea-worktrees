@@ -21,8 +21,8 @@ dependencies {
         create("IC", "2025.1.4.1")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
-        // Add necessary plugin dependencies for compilation here, example:
-        // bundledPlugin("com.intellij.java")
+        // Add Git plugin for VCS integration
+        bundledPlugin("Git4Idea")
     }
 }
 

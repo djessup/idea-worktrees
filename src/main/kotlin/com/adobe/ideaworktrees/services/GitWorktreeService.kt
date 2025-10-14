@@ -1,6 +1,7 @@
 package com.adobe.ideaworktrees.services
 
 import com.adobe.ideaworktrees.model.WorktreeInfo
+import com.intellij.dvcs.repo.VcsRepositoryManager
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessOutput
 import com.intellij.execution.util.ExecUtil
@@ -9,6 +10,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import git4idea.repo.GitRepository
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.exists
@@ -169,13 +171,17 @@ class GitWorktreeService(private val project: Project) {
 
     /**
      * Checks if the current project is a Git repository.
+     * This method is safe to call from a ReadAction as it uses IntelliJ's VCS APIs.
      */
     fun isGitRepository(): Boolean {
-        val projectPath = getProjectPath() ?: return false
-        
         return try {
-            val output = executeGitCommand(projectPath, "rev-parse", "--git-dir")
-            output.exitCode == 0
+            val repositoryManager = VcsRepositoryManager.getInstance(project)
+            // Check if there's at least one Git repository in the project
+            val projectPath = getProjectPath() ?: return false
+            val repository = repositoryManager.getRepositoryForRootQuick(
+                com.intellij.openapi.vfs.LocalFileSystem.getInstance().findFileByPath(projectPath.toString())
+            )
+            repository is GitRepository
         } catch (e: Exception) {
             false
         }
