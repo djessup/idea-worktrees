@@ -92,6 +92,12 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 - **WorktreeStatusBarWidget**: Status bar widget for displaying current worktree
 - **Actions**: Individual actions for worktree operations (create, switch, delete, manage)
 
+## Roadmap
+- Use IntelliJ VCS APIs instead of `GeneralCommandLine` for Git operations
+- Use folder browser for worktree path input, default to "../[project name]-[branch name]"
+- Add support for comparing and merging worktrees using 
+- Add keyboard shortcuts for common actions
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues or pull requests.

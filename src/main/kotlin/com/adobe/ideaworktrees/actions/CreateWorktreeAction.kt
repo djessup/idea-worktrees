@@ -1,11 +1,14 @@
 package com.adobe.ideaworktrees.actions
 
 import com.adobe.ideaworktrees.services.GitWorktreeService
+import com.intellij.ide.impl.ProjectUtil
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.Messages
 import java.nio.file.Paths
@@ -17,9 +20,8 @@ class CreateWorktreeAction : AnAction(), DumbAware {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val service = GitWorktreeService.getInstance(project)
 
-        // Get branch name from user
+        // Get branch name from user (on EDT)
         val branchName = Messages.showInputDialog(
             project,
             "Enter the name for the new branch:",
@@ -32,7 +34,7 @@ class CreateWorktreeAction : AnAction(), DumbAware {
             return
         }
 
-        // Get worktree path from user
+        // Get worktree path from user (on EDT)
         val worktreeName = Messages.showInputDialog(
             project,
             "Enter the name for the new worktree directory:",
@@ -61,43 +63,52 @@ class CreateWorktreeAction : AnAction(), DumbAware {
             return
         }
 
-        // Create the worktree
-        val success = service.createWorktree(worktreePath, branchName, createBranch = true)
+        // Execute Git command on background thread
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val service = GitWorktreeService.getInstance(project)
+            try {
+                val success = service.createWorktree(worktreePath, branchName, createBranch = true)
 
-        if (success) {
-            NotificationGroupManager.getInstance()
-                .getNotificationGroup("Git Worktree")
-                .createNotification(
-                    "Worktree created successfully",
-                    "Created worktree '$worktreeName' with branch '$branchName' at $worktreePath",
-                    NotificationType.INFORMATION
-                )
-                .notify(project)
+                // Show result on EDT
+                ApplicationManager.getApplication().invokeLater({
+                    if (success) {
+                        NotificationGroupManager.getInstance()
+                            .getNotificationGroup("Git Worktree")
+                            .createNotification(
+                                "Worktree created successfully",
+                                "Created worktree '$worktreeName' with branch '$branchName' at $worktreePath",
+                                NotificationType.INFORMATION
+                            )
+                            .notify(project)
 
-            // Ask if user wants to open the new worktree
-            val openWorktree = Messages.showYesNoDialog(
-                project,
-                "Would you like to open the new worktree in a new window?",
-                "Open Worktree",
-                Messages.getQuestionIcon()
-            )
+                        // Ask if user wants to open the new worktree
+                        val openWorktree = Messages.showYesNoDialog(
+                            project,
+                            "Would you like to open the new worktree in a new window?",
+                            "Open Worktree",
+                            Messages.getQuestionIcon()
+                        )
 
-            if (openWorktree == Messages.YES) {
-                // TODO: Implement opening worktree in new window
-                NotificationGroupManager.getInstance()
-                    .getNotificationGroup("Git Worktree")
-                    .createNotification(
-                        "Opening worktree in new window not yet implemented",
-                        NotificationType.INFORMATION
+                        if (openWorktree == Messages.YES) {
+                            ProjectUtil.openOrImport(worktreePath, project, false)
+                        }
+                    } else {
+                        Messages.showErrorDialog(
+                            project,
+                            "Failed to create worktree. Check the IDE log for details.",
+                            "Error Creating Worktree"
+                        )
+                    }
+                }, ModalityState.nonModal())
+            } catch (e: Exception) {
+                ApplicationManager.getApplication().invokeLater({
+                    Messages.showErrorDialog(
+                        project,
+                        "Failed to create worktree: ${e.message}",
+                        "Error Creating Worktree"
                     )
-                    .notify(project)
+                }, ModalityState.nonModal())
             }
-        } else {
-            Messages.showErrorDialog(
-                project,
-                "Failed to create worktree. Check the IDE log for details.",
-                "Error Creating Worktree"
-            )
         }
     }
 
