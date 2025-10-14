@@ -37,4 +37,39 @@
                            displayType="BALLOON"
                            isLogByDefault="true"/>
     </extensions>
+
+    <!-- Actions -->
+    <actions>
+        <group id="com.adobe.ideaworktrees.WorktreeActionGroup"
+               class="com.adobe.ideaworktrees.actions.WorktreeActionGroup"
+               text="Git Worktrees"
+               description="Git worktree operations"
+               popup="true">
+
+            <action id="com.adobe.ideaworktrees.CreateWorktreeAction"
+                    class="com.adobe.ideaworktrees.actions.CreateWorktreeAction"
+                    text="Create New Worktree..."
+                    description="Create a new Git worktree"/>
+
+            <action id="com.adobe.ideaworktrees.SwitchWorktreeAction"
+                    class="com.adobe.ideaworktrees.actions.SwitchWorktreeAction"
+                    text="Switch Worktree..."
+                    description="Switch to a different Git worktree"/>
+
+            <action id="com.adobe.ideaworktrees.DeleteWorktreeAction"
+                    class="com.adobe.ideaworktrees.actions.DeleteWorktreeAction"
+                    text="Delete Worktree..."
+                    description="Delete a Git worktree"/>
+
+            <separator/>
+
+            <action id="com.adobe.ideaworktrees.ManageWorktreesAction"
+                    class="com.adobe.ideaworktrees.actions.ManageWorktreesAction"
+                    text="Show All Worktrees"
+                    description="Show information about all Git worktrees"/>
+
+            <!-- Add to VCS menu -->
+            <add-to-group group-id="VcsGroups" anchor="last"/>
+        </group>
+    </actions>
 </idea-plugin>
