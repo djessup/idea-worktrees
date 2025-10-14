@@ -112,13 +112,15 @@ IntelliJ Platform has strict threading requirements. Violating these causes erro
    - Add to plugin.xml: `<depends>Git4Idea</depends>` (runtime)
    - Both are required for Git4Idea classes to work
 
-## Current Status: Initial Implementation Complete
+## Current Status: Roadmap Items Complete
 
 **Architecture Decisions:**
 1. Use `StatusBarEditorBasedWidgetFactory` for the status bar widget showing current worktree
 2. Create action group for worktree operations (create, switch, delete, manage)
 3. Use Git command-line interface via `GeneralCommandLine` for worktree operations
 4. Store worktree state in project-level service
+5. Use `DialogWrapper` for custom dialogs with proper UI components
+6. All Git operations run on background threads to avoid EDT violations
 
 **Implementation Plan:**
 See IMPLEMENTATION_PLAN.md for detailed task breakdown.
@@ -129,6 +131,10 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 3. ✅ Action group with create, switch, delete, and manage actions
 4. ✅ Plugin metadata and README documentation
 5. ✅ Successfully builds plugin distribution
+6. ✅ Folder browser for worktree path selection with auto-suggestion
+7. ✅ Detailed error handling and user feedback
+8. ✅ Table-based manage worktrees dialog with Open/Delete/Refresh
+9. ✅ Keyboard shortcuts for all actions
 
 **Commits:**
 - feat: add GitWorktreeService with core operations (847c9d1)
@@ -142,27 +148,31 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - fix: run Git commands on background threads in actions (4931db7)
 - fix: correct git worktree add command argument order (16ab6a1)
 - fix: eliminate EDT violations and handle repositories with no commits (4a8790e)
+- feat: add folder browser for worktree path selection (2a413e1)
+- feat: improve manage worktrees UI with table view (8570901)
+- feat: add keyboard shortcuts for worktree actions (1eb14ec)
+- docs: update README with completed features (71ac131)
 
 **Recent Changes:**
-- Fixed all "Synchronous execution under ReadAction" errors
-- Fixed all "Synchronous execution on EDT" errors
-- Added comprehensive threading documentation to AGENTS.md
-- All Git commands now run on background threads using executeOnPooledThread()
-- UI updates properly scheduled on EDT using invokeLater()
-- Added Git4Idea plugin dependency to build.gradle.kts and plugin.xml
-- Replaced direct Git command execution with IntelliJ VCS APIs in isGitRepository()
-- Implemented caching mechanism for worktree data in status bar widget
-- Widget now updates asynchronously on background thread
-- Status bar widget safely displays worktree info without blocking the UI thread
-- Fixed NoClassDefFoundError by declaring Git4Idea as runtime dependency
-- All actions are fully functional and tested
-- Fixed git worktree add command argument order (branch name before path)
-- Added support for repositories with no commits using --orphan flag
-- Eliminated remaining EDT violations in DeleteWorktreeAction and ManageWorktreesAction
-- Removed blocking Git calls from action update() methods
+- Implemented folder browser dialog for worktree path selection
+  - Auto-suggests path as `../[project-name]-[branch-name]`
+  - Updates suggestion dynamically as user types branch name
+  - Includes input validation for branch name and path
+- Created ManageWorktreesDialog with table view
+  - Displays worktrees in JBTable with columns: Name, Branch, Path, Commit, Status
+  - Open, Delete, and Refresh buttons with proper state management
+  - Marks current worktree with asterisk
+  - Prevents deletion of current and main worktrees
+- Added keyboard shortcuts for all actions
+  - Ctrl+Alt+W, C: Create New Worktree
+  - Ctrl+Alt+W, S: Switch Worktree
+  - Ctrl+Alt+W, D: Delete Worktree
+  - Ctrl+Alt+W, M: Manage Worktrees
+- Updated README with comprehensive feature documentation
+- All roadmap items from README.md are now complete
 
 **Next Steps:**
 1. Manual testing in IDE using `./gradlew runIde`
-2. Fix test framework issues and add proper tests
-3. Add rename, compare, and merge actions
-4. Test with real Git repositories and worktrees
+2. Test all features with real Git repositories and worktrees
+3. Consider adding rename, compare, and merge actions (future enhancements)
+4. Add test coverage when test framework is working
