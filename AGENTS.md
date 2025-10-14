@@ -76,14 +76,16 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - fix: implement status bar widget actions (da95b3a)
 - fix: avoid blocking Git commands in ReadAction (a5db92a)
 - fix: cache worktree data to avoid blocking in ReadAction (ae14186)
+- fix: add Git4Idea plugin dependency to plugin.xml (188344d)
 
 **Recent Changes:**
 - Fixed all "Synchronous execution under ReadAction" errors
-- Added Git4Idea plugin dependency to build.gradle.kts
+- Added Git4Idea plugin dependency to build.gradle.kts and plugin.xml
 - Replaced direct Git command execution with IntelliJ VCS APIs in isGitRepository()
 - Implemented caching mechanism for worktree data in status bar widget
 - Widget now updates asynchronously on background thread
 - Status bar widget safely displays worktree info without blocking the UI thread
+- Fixed NoClassDefFoundError by declaring Git4Idea as runtime dependency
 - All actions are fully functional and tested
 
 **Next Steps:**
