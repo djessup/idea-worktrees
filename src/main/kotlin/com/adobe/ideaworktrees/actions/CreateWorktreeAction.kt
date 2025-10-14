@@ -1,5 +1,6 @@
 package com.adobe.ideaworktrees.actions
 
+import com.adobe.ideaworktrees.model.WorktreeOperationResult
 import com.adobe.ideaworktrees.services.GitWorktreeService
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.notification.NotificationGroupManager
@@ -52,50 +53,81 @@ class CreateWorktreeAction : AnAction(), DumbAware {
             return
         }
 
-        // Execute Git command on background thread
-        ApplicationManager.getApplication().executeOnPooledThread {
-            val service = GitWorktreeService.getInstance(project)
-            val result = service.createWorktree(worktreePath, branchName, createBranch = true)
+        val service = GitWorktreeService.getInstance(project)
 
-            // Show result on EDT
+        fun publishResult(result: WorktreeOperationResult) {
             ApplicationManager.getApplication().invokeLater({
-                if (result.isSuccess) {
-                    NotificationGroupManager.getInstance()
-                        .getNotificationGroup("Git Worktree")
-                        .createNotification(
-                            "Worktree Created",
-                            result.successMessage() ?: "Created worktree successfully",
-                            NotificationType.INFORMATION
+                when (result) {
+                    is WorktreeOperationResult.Success -> {
+                        NotificationGroupManager.getInstance()
+                            .getNotificationGroup("Git Worktree")
+                            .createNotification(
+                                "Worktree Created",
+                                result.message,
+                                NotificationType.INFORMATION
+                            )
+                            .notify(project)
+
+                        val openWorktree = Messages.showYesNoDialog(
+                            project,
+                            "Would you like to open the new worktree in a new window?",
+                            "Open Worktree",
+                            Messages.getQuestionIcon()
                         )
-                        .notify(project)
 
-                    // Ask if user wants to open the new worktree
-                    val openWorktree = Messages.showYesNoDialog(
-                        project,
-                        "Would you like to open the new worktree in a new window?",
-                        "Open Worktree",
-                        Messages.getQuestionIcon()
-                    )
-
-                    if (openWorktree == Messages.YES) {
-                        ProjectUtil.openOrImport(worktreePath, project, false)
+                        if (openWorktree == Messages.YES) {
+                            ProjectUtil.openOrImport(worktreePath, project, false)
+                        }
                     }
-                } else {
-                    val errorMsg = result.errorMessage() ?: "Failed to create worktree"
-                    val details = result.errorDetails()
-                    val fullMessage = if (details != null) {
-                        "$errorMsg\n\nDetails: $details"
-                    } else {
-                        errorMsg
-                    }
+                    is WorktreeOperationResult.RequiresInitialCommit -> {
+                        val response = Messages.showYesNoDialog(
+                            project,
+                            "The repository has no commits. Create an empty initial commit so the new worktree can be created?",
+                            "Initial Commit Required",
+                            Messages.getQuestionIcon()
+                        )
 
-                    Messages.showErrorDialog(
-                        project,
-                        fullMessage,
-                        "Error Creating Worktree"
-                    )
+                        if (response == Messages.YES) {
+                            ApplicationManager.getApplication().executeOnPooledThread {
+                                val retryResult = service.createWorktree(
+                                    worktreePath,
+                                    branchName,
+                                    createBranch = true,
+                                    allowCreateInitialCommit = true
+                                )
+                                publishResult(retryResult)
+                            }
+                        } else {
+                            Messages.showInfoMessage(
+                                project,
+                                "Create an initial commit in the repository and try again.",
+                                "Initial Commit Required"
+                            )
+                        }
+                    }
+                    is WorktreeOperationResult.Failure -> {
+                        val errorMsg = result.error
+                        val details = result.details
+                        val fullMessage = if (details != null) {
+                            "$errorMsg\n\nDetails: $details"
+                        } else {
+                            errorMsg
+                        }
+
+                        Messages.showErrorDialog(
+                            project,
+                            fullMessage,
+                            "Error Creating Worktree"
+                        )
+                    }
                 }
             }, ModalityState.nonModal())
+        }
+
+        // Execute Git command on background thread
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val result = service.createWorktree(worktreePath, branchName, createBranch = true)
+            publishResult(result)
         }
     }
 
@@ -213,4 +245,3 @@ private class CreateWorktreeDialog(private val project: com.intellij.openapi.pro
     fun getBranchName(): String = branchNameField.text.trim()
     fun getWorktreePath(): String = pathField.text.trim()
 }
-

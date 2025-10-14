@@ -154,6 +154,8 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - docs: update README with completed features (71ac131)
 
 **Recent Changes:**
+- Fixed status bar widget initialization by reacting to VCS mapping and Git repository change events (no more manual refresh required)
+- Added automatic handling for empty repositories when creating worktrees (prompts for and creates an empty initial commit when approved)
 - Implemented folder browser dialog for worktree path selection
   - Auto-suggests path as `../[project-name]-[branch-name]`
   - Updates suggestion dynamically as user types branch name

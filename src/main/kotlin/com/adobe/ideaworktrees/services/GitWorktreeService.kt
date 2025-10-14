@@ -2,6 +2,9 @@ package com.adobe.ideaworktrees.services
 
 import com.adobe.ideaworktrees.model.WorktreeInfo
 import com.adobe.ideaworktrees.model.WorktreeOperationResult
+import com.adobe.ideaworktrees.model.WorktreeOperationResult.Failure
+import com.adobe.ideaworktrees.model.WorktreeOperationResult.RequiresInitialCommit
+import com.adobe.ideaworktrees.model.WorktreeOperationResult.Success
 import com.intellij.dvcs.repo.VcsRepositoryManager
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessOutput
@@ -10,7 +13,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.messages.Topic
 import git4idea.repo.GitRepository
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -25,6 +28,10 @@ class GitWorktreeService(private val project: Project) {
     
     companion object {
         private val LOG = Logger.getInstance(GitWorktreeService::class.java)
+        private const val DEFAULT_INITIAL_COMMIT_MESSAGE = "Initial commit created by Git Worktree Manager"
+
+        val WORKTREE_TOPIC: Topic<WorktreeChangeListener> =
+            Topic.create("GitWorktreeChanges", WorktreeChangeListener::class.java)
         
         fun getInstance(project: Project): GitWorktreeService = project.service()
     }
@@ -71,28 +78,43 @@ class GitWorktreeService(private val project: Project) {
      * @param createBranch Whether to create a new branch (true) or use an existing one (false)
      * @return WorktreeOperationResult indicating success or failure with details
      */
-    fun createWorktree(path: Path, branch: String, createBranch: Boolean = true): WorktreeOperationResult {
+    fun createWorktree(
+        path: Path,
+        branch: String,
+        createBranch: Boolean = true,
+        allowCreateInitialCommit: Boolean = false,
+        initialCommitMessage: String = DEFAULT_INITIAL_COMMIT_MESSAGE
+    ): WorktreeOperationResult {
         val projectPath = getProjectPath()
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
         return try {
             // Check if repository has commits
-            val hasCommits = hasCommits(projectPath)
+            var hasCommits = hasCommits(projectPath)
+            var initialCommitCreated = false
+
+            if (!hasCommits) {
+                if (!allowCreateInitialCommit) {
+                    return RequiresInitialCommit("Repository has no commits")
+                }
+
+                val commitResult = createInitialCommit(projectPath, initialCommitMessage)
+                if (commitResult is Failure) {
+                    return commitResult
+                }
+
+                initialCommitCreated = commitResult is Success
+                hasCommits = hasCommits(projectPath)
+            }
 
             val args = mutableListOf("worktree", "add")
 
             if (createBranch) {
+                args.add("-b")
+                args.add(branch)
+                args.add(path.toString())
                 if (hasCommits) {
-                    // Normal case: create new branch from HEAD
-                    args.add("-b")
-                    args.add(branch)
-                    args.add(path.toString())
                     args.add("HEAD")
-                } else {
-                    // Repository has no commits: create orphan branch
-                    args.add("--orphan")
-                    args.add(branch)
-                    args.add(path.toString())
                 }
             } else {
                 // Checkout existing branch
@@ -111,7 +133,15 @@ class GitWorktreeService(private val project: Project) {
             }
 
             LOG.info("Created worktree at $path for branch $branch")
-            WorktreeOperationResult.Success("Created worktree '$branch' at $path")
+            notifyWorktreesChanged()
+
+            val successMessage = if (initialCommitCreated) {
+                "Created initial commit and worktree '$branch' at $path"
+            } else {
+                "Created worktree '$branch' at $path"
+            }
+
+            WorktreeOperationResult.Success(successMessage)
         } catch (e: Exception) {
             LOG.error("Error creating worktree", e)
             WorktreeOperationResult.Failure(
@@ -162,6 +192,7 @@ class GitWorktreeService(private val project: Project) {
             }
 
             LOG.info("Deleted worktree at $path")
+            notifyWorktreesChanged()
             WorktreeOperationResult.Success("Deleted worktree at $path")
         } catch (e: Exception) {
             LOG.error("Error deleting worktree", e)
@@ -201,6 +232,7 @@ class GitWorktreeService(private val project: Project) {
             }
 
             LOG.info("Moved worktree from $oldPath to $newPath")
+            notifyWorktreesChanged()
             WorktreeOperationResult.Success("Moved worktree from $oldPath to $newPath")
         } catch (e: Exception) {
             LOG.error("Error moving worktree", e)
@@ -316,5 +348,25 @@ class GitWorktreeService(private val project: Project) {
         val path = Paths.get(basePath)
         return if (path.exists()) path else null
     }
-}
 
+    private fun notifyWorktreesChanged() {
+        project.messageBus.syncPublisher(WORKTREE_TOPIC).worktreesChanged()
+    }
+
+    private fun createInitialCommit(projectPath: Path, message: String): WorktreeOperationResult {
+        return try {
+            val output = executeGitCommand(projectPath, "commit", "--allow-empty", "-m", message)
+            if (output.exitCode != 0) {
+                val errorMsg = output.stderr.trim().ifEmpty { "Unknown error" }
+                LOG.warn("Failed to create initial commit: $errorMsg")
+                Failure("Failed to create initial commit", errorMsg)
+            } else {
+                LOG.info("Created initial commit in repository at $projectPath")
+                Success("Created initial commit")
+            }
+        } catch (e: Exception) {
+            LOG.error("Error creating initial commit", e)
+            Failure("Error creating initial commit", e.message ?: "Unknown error")
+        }
+    }
+}

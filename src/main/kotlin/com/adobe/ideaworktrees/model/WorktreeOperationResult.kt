@@ -10,6 +10,11 @@ sealed class WorktreeOperationResult {
     data class Success(val message: String = "Operation completed successfully") : WorktreeOperationResult()
 
     /**
+     * Operation requires an initial commit before it can proceed.
+     */
+    data class RequiresInitialCommit(val message: String = "Repository has no commits") : WorktreeOperationResult()
+
+    /**
      * Operation failed with an error.
      */
     data class Failure(val error: String, val details: String? = null) : WorktreeOperationResult()
@@ -34,11 +39,14 @@ sealed class WorktreeOperationResult {
     /**
      * Get the error message if available.
      */
-    fun errorMessage(): String? = (this as? Failure)?.error
+    fun errorMessage(): String? = when (this) {
+        is Failure -> error
+        is RequiresInitialCommit -> message
+        else -> null
+    }
 
     /**
      * Get the error details if available.
      */
     fun errorDetails(): String? = (this as? Failure)?.details
 }
-

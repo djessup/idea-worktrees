@@ -31,6 +31,7 @@ An IntelliJ IDEA plugin that provides ergonomic support for working with multipl
 - Detailed error messages from Git operations
 - Clear success/failure feedback
 - Handles edge cases like repositories with no commits
+- Automatically offers to create an initial commit (with user consent) when needed for new worktrees
 
 ## What are Git Worktrees?
 
@@ -135,8 +136,8 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 - Add worktree pruning action
 - Add support for worktree locking/unlocking
 
-## Bugs
-- Sometimes status bar widget does not appear when IDE starts up, requires the widget to be 
+## Known Issues
+None currently known. Please report any problems via issues or pull requests.
 
 ## Contributing
 
@@ -149,4 +150,3 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 ## Credits
 
 Developed by Adobe
-
