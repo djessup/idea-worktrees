@@ -32,15 +32,38 @@ the ability to revert to a previous state if needed. Use Conventional Commits fo
 For more information on how to develop an IntelliJ plugin, refer to the documentation at:
 https://plugins.jetbrains.com/docs/intellij/welcome.html
 
-Modifications to this file must be made below this line. Do not modify or remove this marker, or anything above it.
-----------------------------
-
-It is recommended that you first review the documentation extensively and replace this sentence with a summary of your 
-understanding of the plugin development process, to accelerate future work.
-
 You should update this AGENTS.md file regularly to record important decisions and learnings that support your short-term
 priorities. Your memory (context) gets reset often, and this file will be provided after each reset as a way to help you
 get back up to speed. Use it to help yourself be the best plugin-writing agent you can be!
 
 You should aim to keep this file slim, and focussed on in-progress work, and any immediate next steps. Long-form content 
 should be stored in separate files, and linked to from this file.
+
+Modifications to this file must be made below this line. Do not modify or remove this marker, or anything above it.
+----------------------------
+
+## Plugin Development Understanding
+
+**Key Concepts:**
+- Actions: Extend `AnAction` (or `DumbAwareAction` for dumb mode). Override `update()` for state/visibility and `actionPerformed()` for execution
+- Status Bar Widgets: Implement `StatusBarWidgetFactory` and register via `com.intellij.statusBarWidgetFactory` extension point
+- Git Integration: Use IntelliJ's VCS APIs to interact with Git repositories and worktrees
+- Plugin Configuration: Register components in `plugin.xml` under `<extensions>` and `<actions>` sections
+
+## Current Status: Initial Implementation
+
+**Architecture Decisions:**
+1. Use `StatusBarEditorBasedWidgetFactory` for the status bar widget showing current worktree
+2. Create action group for worktree operations (create, switch, delete, rename, compare, merge)
+3. Use Git command-line interface via `GeneralCommandLine` for worktree operations
+4. Store worktree state in project-level service
+
+**Implementation Plan:**
+See IMPLEMENTATION_PLAN.md for detailed task breakdown.
+
+**Next Steps:**
+1. Create core service for Git worktree operations
+2. Implement status bar widget
+3. Create action group and individual actions
+4. Write tests for each component
+5. Commit incrementally with conventional commits

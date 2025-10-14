@@ -24,6 +24,7 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-
+        <!-- Git Worktree Service -->
+        <projectService serviceImplementation="com.adobe.ideaworktrees.services.GitWorktreeService"/>
     </extensions>
 </idea-plugin>
