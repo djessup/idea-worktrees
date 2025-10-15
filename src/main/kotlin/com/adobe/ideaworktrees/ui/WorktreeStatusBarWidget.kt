@@ -41,16 +41,11 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
     private val cachedCurrentWorktree = AtomicReference<WorktreeInfo?>(null)
 
     init {
-        ProjectLevelVcsManager.getInstance(project).addVcsListener(
-            object : ProjectLevelVcsManager.VcsListener {
-                override fun directoryMappingChanged() {
-                    updateCacheAsync()
-                }
-            },
-            this
-        )
-
         project.messageBus.connect(this).apply {
+            subscribe(
+                ProjectLevelVcsManager.VCS_CONFIGURATION_CHANGED,
+                Runnable { updateCacheAsync() }
+            )
             subscribe(
                 GitWorktreeService.WORKTREE_TOPIC,
                 WorktreeChangeListener { updateCacheAsync() }
