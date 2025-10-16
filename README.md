@@ -143,7 +143,9 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 - Add support for worktree locking/unlocking
 
 ## Known Issues
-None currently known. Please report any problems via issues or pull requests.
+- Creating new WT with the same name as an existing one is not detected or handled gracefully
+- The UI is not optimised for UX, paths are simple text fields, no defaults provided. 
+- No UI implementation for anything other than "new worktree".
 
 ## Contributing
 

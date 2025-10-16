@@ -31,52 +31,65 @@ class MergeWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
-        val worktrees = service.listWorktrees()
-
-        if (worktrees.size < 2) {
-            Messages.showInfoMessage(
-                project,
-                "You need at least two worktrees to perform a merge.",
-                "Merge Worktrees"
-            )
-            return
-        }
-
-        val dialog = MergeWorktreesDialog(project, worktrees)
-        if (!dialog.showAndGet()) {
-            return
-        }
-
-        val (source, target, fastForwardOnly) = dialog.getSelection()
-
-        val confirm = Messages.showYesNoDialog(
-            project,
-            "Merge '${source.displayName}' into '${target.displayName}'?\n\n" +
-                "This will run 'git merge${if (fastForwardOnly) " --ff-only" else ""} ${source.displayName}'.",
-            "Merge Worktrees",
-            Messages.getWarningIcon()
-        )
-        if (confirm != Messages.YES) {
-            return
-        }
-
         ApplicationManager.getApplication().executeOnPooledThread {
-            val result = service.mergeWorktree(source, target, fastForwardOnly)
-            ApplicationManager.getApplication().invokeLater({
-                if (result.isSuccess) {
-                    notify(
+            try {
+                val worktrees = service.listWorktrees()
+                ApplicationManager.getApplication().invokeLater({
+                    if (worktrees.size < 2) {
+                        Messages.showInfoMessage(
+                            project,
+                            "You need at least two worktrees to perform a merge.",
+                            "Merge Worktrees"
+                        )
+                        return@invokeLater
+                    }
+
+                    val dialog = MergeWorktreesDialog(project, worktrees)
+                    if (!dialog.showAndGet()) {
+                        return@invokeLater
+                    }
+
+                    val (source, target, fastForwardOnly) = dialog.getSelection()
+
+                    val confirm = Messages.showYesNoDialog(
                         project,
-                        "Worktree Merge",
-                        result.successMessage() ?: "Merge completed successfully.",
-                        NotificationType.INFORMATION
+                        "Merge '${source.displayName}' into '${target.displayName}'?\n\n" +
+                            "This will run 'git merge${if (fastForwardOnly) " --ff-only" else ""} ${source.displayName}'.",
+                        "Merge Worktrees",
+                        Messages.getWarningIcon()
                     )
-                } else {
-                    val message = result.errorMessage() ?: "Failed to merge worktrees."
-                    val details = result.errorDetails()
-                    val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
-                    Messages.showErrorDialog(project, fullMessage, "Merge Worktrees")
-                }
-            }, ModalityState.nonModal())
+                    if (confirm != Messages.YES) {
+                        return@invokeLater
+                    }
+
+                    ApplicationManager.getApplication().executeOnPooledThread {
+                        val result = service.mergeWorktree(source, target, fastForwardOnly)
+                        ApplicationManager.getApplication().invokeLater({
+                            if (result.isSuccess) {
+                                notify(
+                                    project,
+                                    "Worktree Merge",
+                                    result.successMessage() ?: "Merge completed successfully.",
+                                    NotificationType.INFORMATION
+                                )
+                            } else {
+                                val message = result.errorMessage() ?: "Failed to merge worktrees."
+                                val details = result.errorDetails()
+                                val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
+                                Messages.showErrorDialog(project, fullMessage, "Merge Worktrees")
+                            }
+                        }, ModalityState.nonModal())
+                    }
+                }, ModalityState.nonModal())
+            } catch (ex: Exception) {
+                ApplicationManager.getApplication().invokeLater({
+                    Messages.showErrorDialog(
+                        project,
+                        "Failed to list worktrees: ${ex.message}",
+                        "Merge Worktrees"
+                    )
+                }, ModalityState.nonModal())
+            }
         }
     }
 

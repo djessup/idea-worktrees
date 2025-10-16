@@ -23,89 +23,103 @@ class RenameWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
-        val worktrees = service.listWorktrees()
-        val projectRoot = project.basePath?.let { Paths.get(it).toAbsolutePath().normalize().toString() }
-
-        val candidates = worktrees.filter { worktree ->
-            val normalizedPath = worktree.path.toAbsolutePath().normalize().toString()
-            val isProjectRoot = projectRoot != null && normalizedPath == projectRoot
-            !worktree.isMain && !isProjectRoot
-        }
-        if (candidates.isEmpty()) {
-            Messages.showInfoMessage(
-                project,
-                "No additional worktrees available to rename.",
-                "Rename Worktree"
-            )
-            return
-        }
-
-        val displayNames = candidates.map { it.displayString() }.toTypedArray()
-        val selected = Messages.showEditableChooseDialog(
-            "Select the worktree you would like to rename:",
-            "Rename Worktree",
-            Messages.getQuestionIcon(),
-            displayNames,
-            displayNames.first(),
-            null
-        ) ?: return
-
-        val worktree = candidates[displayNames.indexOf(selected)]
-        val newName = Messages.showInputDialog(
-            project,
-            "Enter a new name for '${worktree.displayName}':",
-            "Rename Worktree",
-            Messages.getQuestionIcon(),
-            worktree.path.fileName?.toString() ?: "",
-            null
-        )?.trim() ?: return
-
-        if (!isValidName(newName)) {
-            Messages.showErrorDialog(
-                project,
-                "The provided name is invalid. Please avoid path separators or empty names.",
-                "Rename Worktree"
-            )
-            return
-        }
-
-        val parent = worktree.path.parent
-        if (parent == null) {
-            Messages.showErrorDialog(
-                project,
-                "Cannot determine the parent directory for the selected worktree.",
-                "Rename Worktree"
-            )
-            return
-        }
-
-        val newPath = parent.resolve(newName)
-        if (Files.exists(newPath)) {
-            Messages.showErrorDialog(
-                project,
-                "A directory with the name '$newName' already exists.",
-                "Rename Worktree"
-            )
-            return
-        }
-
         ApplicationManager.getApplication().executeOnPooledThread {
-            val result = service.moveWorktree(worktree.path, newPath)
-            ApplicationManager.getApplication().invokeLater({
-                if (result.isSuccess) {
-                    notify(
-                        project,
-                        "Worktree Renamed",
-                        result.successMessage() ?: "Worktree renamed successfully",
-                        NotificationType.INFORMATION
-                    )
-                } else {
-                    val message = result.errorMessage() ?: "Failed to rename worktree"
-                    val details = result.errorDetails()
-                    val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
-                    Messages.showErrorDialog(project, fullMessage, "Rename Worktree")
+            try {
+                val worktrees = service.listWorktrees()
+                val projectRoot = project.basePath?.let { Paths.get(it).toAbsolutePath().normalize().toString() }
+
+                val candidates = worktrees.filter { worktree ->
+                    val normalizedPath = worktree.path.toAbsolutePath().normalize().toString()
+                    val isProjectRoot = projectRoot != null && normalizedPath == projectRoot
+                    !worktree.isMain && !isProjectRoot
                 }
-            }, ModalityState.nonModal())
+                ApplicationManager.getApplication().invokeLater({
+                    if (candidates.isEmpty()) {
+                        Messages.showInfoMessage(
+                            project,
+                            "No additional worktrees available to rename.",
+                            "Rename Worktree"
+                        )
+                        return@invokeLater
+                    }
+
+                    val displayNames = candidates.map { it.displayString() }.toTypedArray()
+                    val selected = Messages.showEditableChooseDialog(
+                        "Select the worktree you would like to rename:",
+                        "Rename Worktree",
+                        Messages.getQuestionIcon(),
+                        displayNames,
+                        displayNames.first(),
+                        null
+                    ) ?: return@invokeLater
+
+                    val worktree = candidates[displayNames.indexOf(selected)]
+                    val newName = Messages.showInputDialog(
+                        project,
+                        "Enter a new name for '${worktree.displayName}':",
+                        "Rename Worktree",
+                        Messages.getQuestionIcon(),
+                        worktree.path.fileName?.toString() ?: "",
+                        null
+                    )?.trim() ?: return@invokeLater
+
+                    if (!isValidName(newName)) {
+                        Messages.showErrorDialog(
+                            project,
+                            "The provided name is invalid. Please avoid path separators or empty names.",
+                            "Rename Worktree"
+                        )
+                        return@invokeLater
+                    }
+
+                    val parent = worktree.path.parent
+                    if (parent == null) {
+                        Messages.showErrorDialog(
+                            project,
+                            "Cannot determine the parent directory for the selected worktree.",
+                            "Rename Worktree"
+                        )
+                        return@invokeLater
+                    }
+
+                    val newPath = parent.resolve(newName)
+                    if (Files.exists(newPath)) {
+                        Messages.showErrorDialog(
+                            project,
+                            "A directory with the name '$newName' already exists.",
+                            "Rename Worktree"
+                        )
+                        return@invokeLater
+                    }
+
+                    ApplicationManager.getApplication().executeOnPooledThread {
+                        val result = service.moveWorktree(worktree.path, newPath)
+                        ApplicationManager.getApplication().invokeLater({
+                            if (result.isSuccess) {
+                                notify(
+                                    project,
+                                    "Worktree Renamed",
+                                    result.successMessage() ?: "Worktree renamed successfully",
+                                    NotificationType.INFORMATION
+                                )
+                            } else {
+                                val message = result.errorMessage() ?: "Failed to rename worktree"
+                                val details = result.errorDetails()
+                                val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
+                                Messages.showErrorDialog(project, fullMessage, "Rename Worktree")
+                            }
+                        }, ModalityState.nonModal())
+                    }
+                }, ModalityState.nonModal())
+            } catch (ex: Exception) {
+                ApplicationManager.getApplication().invokeLater({
+                    Messages.showErrorDialog(
+                        project,
+                        "Failed to list worktrees: ${ex.message}",
+                        "Rename Worktree"
+                    )
+                }, ModalityState.nonModal())
+            }
         }
     }
 

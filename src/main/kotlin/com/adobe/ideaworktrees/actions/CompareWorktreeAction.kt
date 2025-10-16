@@ -32,47 +32,60 @@ class CompareWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
-        val worktrees = service.listWorktrees()
-
-        if (worktrees.size < 2) {
-            Messages.showInfoMessage(
-                project,
-                "You need at least two worktrees to run a comparison.",
-                "Compare Worktrees"
-            )
-            return
-        }
-
-        val dialog = CompareWorktreesDialog(project, worktrees)
-        if (!dialog.showAndGet()) {
-            return
-        }
-
-        val (source, target) = dialog.getSelection()
-
         ApplicationManager.getApplication().executeOnPooledThread {
-            val result = service.compareWorktrees(source, target)
-            ApplicationManager.getApplication().invokeLater({
-                when {
-                    result.isSuccess -> {
-                        val message = result.successMessage() ?: "Comparison completed."
-                        val details = result.successDetails()
-                        if (!details.isNullOrBlank()) {
-                            DiffResultDialog(project, message, details).show()
-                        } else {
-                            Messages.showInfoMessage(project, message, "Compare Worktrees")
-                        }
+            try {
+                val worktrees = service.listWorktrees()
+                ApplicationManager.getApplication().invokeLater({
+                    if (worktrees.size < 2) {
+                        Messages.showInfoMessage(
+                            project,
+                            "You need at least two worktrees to run a comparison.",
+                            "Compare Worktrees"
+                        )
+                        return@invokeLater
                     }
-                    else -> {
-                        val message = result.errorMessage() ?: "Failed to compare worktrees."
-                        val details = result.errorDetails()
-                        val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
-                        Messages.showErrorDialog(project, fullMessage, "Compare Worktrees")
+
+                    val dialog = CompareWorktreesDialog(project, worktrees)
+                    if (!dialog.showAndGet()) {
+                        return@invokeLater
                     }
-                }
-            }, ModalityState.nonModal())
+
+                    val (source, target) = dialog.getSelection()
+
+                    ApplicationManager.getApplication().executeOnPooledThread {
+                        val result = service.compareWorktrees(source, target)
+                        ApplicationManager.getApplication().invokeLater({
+                            when {
+                                result.isSuccess -> {
+                                    val message = result.successMessage() ?: "Comparison completed."
+                                    val details = result.successDetails()
+                                    if (!details.isNullOrBlank()) {
+                                        DiffResultDialog(project, message, details).show()
+                                    } else {
+                                        Messages.showInfoMessage(project, message, "Compare Worktrees")
+                                    }
+                                }
+                                else -> {
+                                    val message = result.errorMessage() ?: "Failed to compare worktrees."
+                                    val details = result.errorDetails()
+                                    val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
+                                    Messages.showErrorDialog(project, fullMessage, "Compare Worktrees")
+                                }
+                            }
+                        }, ModalityState.nonModal())
+                    }
+                }, ModalityState.nonModal())
+            } catch (ex: Exception) {
+                ApplicationManager.getApplication().invokeLater({
+                    Messages.showErrorDialog(
+                        project,
+                        "Failed to list worktrees: ${ex.message}",
+                        "Compare Worktrees"
+                    )
+                }, ModalityState.nonModal())
+            }
+        }
     }
-}
 
 private class DiffResultDialog(
     project: com.intellij.openapi.project.Project,

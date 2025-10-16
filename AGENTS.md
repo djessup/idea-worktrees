@@ -159,6 +159,7 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - Added integration tests covering worktree comparison and merge workflows
 - Added integration-style tests for GitWorktreeService using BasePlatformTestCase with real Git CLI execution
 - Fixed status bar widget initialization by reacting to VCS mapping and Git repository change events (no more manual refresh required)
+- Ensured all Git CLI calls (list/compare/merge) run off the EDT by loading worktree data on pooled threads before presenting UI
 
 **Next Steps:**
 1. Manual validation in a full IDE session when `runIde` access is available
