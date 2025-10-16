@@ -136,21 +136,19 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 
 ### Future Enhancements
 - Use IntelliJ VCS APIs instead of `GeneralCommandLine` for Git operations
-- Add support for comparing and merging worktrees using VCS compare view
+- Integrate with IntelliJ's VCS compare view for worktree comparisons
 - Add full test coverage
-- Add rename worktree functionality
 - Add worktree pruning action
 - Add support for worktree locking/unlocking
 - Add worktree actions to standard Git/VCS context menu
+- Prompt user if they want to Force Delete "dirty" worktrees instead of erroring with: "Failed to delete worktree - Details: fatal: '/Users/jessup/IdeaProjects/test' contains modified or untracked files, use --force to delete it"
 
 ## Known Issues
-- Creating new WT with the same name as an existing one is not detected or handled gracefully
-- Creating new WT from another WT formats default folder name as `[current-worktree-name]-[new-worktree-name]` instead of `[project name]-[new-worktree-name]`
-- The UI is not optimised for UX, paths are simple text fields, no defaults provided. 
-- No UI implementation for anything other than "new worktree".
-- Rename allows user to attempt to rename main WT then errors "Failed to move worktree. Details: fatal: '[worktree-path]' is a main working tree"
+- Creating new worktree with the same name as an existing one is not detected or handled gracefully
+- Creating new worktree from another worktree formats default folder name as `[current-worktree-name]-[new-worktree-name]` instead of `[project name]-[new-worktree-name]`
+- Rename allows user to attempt to rename main worktree, then errors with "Failed to move worktree. Details: fatal: '[worktree-path]' is a main working tree"
 - Compare does not attempt to handle or warn about uncommitted changes
-- Compare shows a text-based diff output from CLI instead
+- Compare shows a text-based diff output from CLI instead of using IntelliJ's VCS compare view
 
 ## Contributing
 

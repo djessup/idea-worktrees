@@ -32,10 +32,20 @@ class CompareWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                val worktrees = service.listWorktrees()
-                ApplicationManager.getApplication().invokeLater({
+        val application = ApplicationManager.getApplication()
+
+        service.listWorktrees()
+            .whenComplete { worktrees, error ->
+                application.invokeLater({
+                    if (error != null || worktrees == null) {
+                        Messages.showErrorDialog(
+                            project,
+                            "Failed to list worktrees: ${error?.message ?: "Unknown error"}",
+                            "Compare Worktrees"
+                        )
+                        return@invokeLater
+                    }
+
                     if (worktrees.size < 2) {
                         Messages.showInfoMessage(
                             project,
@@ -52,39 +62,35 @@ class CompareWorktreeAction : AnAction(), DumbAware {
 
                     val (source, target) = dialog.getSelection()
 
-                    ApplicationManager.getApplication().executeOnPooledThread {
-                        val result = service.compareWorktrees(source, target)
-                        ApplicationManager.getApplication().invokeLater({
-                            when {
-                                result.isSuccess -> {
-                                    val message = result.successMessage() ?: "Comparison completed."
-                                    val details = result.successDetails()
-                                    if (!details.isNullOrBlank()) {
-                                        DiffResultDialog(project, message, details).show()
-                                    } else {
-                                        Messages.showInfoMessage(project, message, "Compare Worktrees")
-                                    }
+                    service.compareWorktrees(source, target).whenComplete { result, compareError ->
+                        application.invokeLater({
+                            if (compareError != null || result == null) {
+                                Messages.showErrorDialog(
+                                    project,
+                                    "Failed to compare worktrees: ${compareError?.message ?: "Unknown error"}",
+                                    "Compare Worktrees"
+                                )
+                                return@invokeLater
+                            }
+
+                            if (result.isSuccess) {
+                                val message = result.successMessage() ?: "Comparison completed."
+                                val details = result.successDetails()
+                                if (!details.isNullOrBlank()) {
+                                    DiffResultDialog(project, message, details).show()
+                                } else {
+                                    Messages.showInfoMessage(project, message, "Compare Worktrees")
                                 }
-                                else -> {
-                                    val message = result.errorMessage() ?: "Failed to compare worktrees."
-                                    val details = result.errorDetails()
-                                    val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
-                                    Messages.showErrorDialog(project, fullMessage, "Compare Worktrees")
-                                }
+                            } else {
+                                val message = result.errorMessage() ?: "Failed to compare worktrees."
+                                val details = result.errorDetails()
+                                val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
+                                Messages.showErrorDialog(project, fullMessage, "Compare Worktrees")
                             }
                         }, ModalityState.nonModal())
                     }
                 }, ModalityState.nonModal())
-            } catch (ex: Exception) {
-                ApplicationManager.getApplication().invokeLater({
-                    Messages.showErrorDialog(
-                        project,
-                        "Failed to list worktrees: ${ex.message}",
-                        "Compare Worktrees"
-                    )
-                }, ModalityState.nonModal())
             }
-        }
     }
 
 private class DiffResultDialog(
@@ -128,7 +134,7 @@ private class DiffResultDialog(
             return
         }
         val service = GitWorktreeService.getInstance(project)
-        e.presentation.isEnabledAndVisible = service.isGitRepository() && service.listWorktrees().size >= 2
+        e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

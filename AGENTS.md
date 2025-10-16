@@ -160,6 +160,7 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - Added integration-style tests for GitWorktreeService using BasePlatformTestCase with real Git CLI execution
 - Fixed status bar widget initialization by reacting to VCS mapping and Git repository change events (no more manual refresh required)
 - Ensured all Git CLI calls (list/compare/merge) run off the EDT by loading worktree data on pooled threads before presenting UI
+- Centralized background execution inside `GitWorktreeService` using `CompletableFuture`, updated all UI callers to await via callbacks, and tightened tests to await async results
 
 **Next Steps:**
 1. Manual validation in a full IDE session when `runIde` access is available
@@ -173,16 +174,11 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
   - Open, Delete, and Refresh buttons with proper state management
   - Marks current worktree with asterisk
   - Prevents deletion of current and main worktrees
-- Added keyboard shortcuts for all actions
-  - Ctrl+Alt+W, C: Create New Worktree
-  - Ctrl+Alt+W, S: Switch Worktree
-  - Ctrl+Alt+W, D: Delete Worktree
-  - Ctrl+Alt+W, M: Manage Worktrees
-- Updated README with comprehensive feature documentation
-- All roadmap items from README.md are now complete
-
-**Next Steps:**
-1. Manual testing in IDE using `./gradlew runIde`
+- Added keyboard shortcuts for all actions (NOT WORKING ON MACOS, OTHER OS' UNTESTED)
+  - Ctrl/Cmd+Alt+W, C: Create New Worktree
+  - Ctrl/Cmd+Alt+W, S: Switch Worktree
+  - Ctrl/Cmd+Alt+W, D: Delete Worktree
+  - Ctrl/Cmd+Alt+W, M: Manage Worktrees
 2. Test all features with real Git repositories and worktrees
 3. Consider adding rename, compare, and merge actions (future enhancements)
 4. Expand automated tests to cover UI widgets and action flows

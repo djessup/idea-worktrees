@@ -13,10 +13,13 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.messages.Topic
 import git4idea.repo.GitRepository
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.CompletableFuture
 import kotlin.io.path.exists
 
 /**
@@ -40,7 +43,11 @@ class GitWorktreeService(private val project: Project) {
      * Lists all worktrees for the current project's Git repository.
      * Returns an empty list if the project is not a Git repository or if Git is not available.
      */
-    fun listWorktrees(): List<WorktreeInfo> {
+    fun listWorktrees(): CompletableFuture<List<WorktreeInfo>> {
+        return runAsync("listWorktrees") { listWorktreesInternal() }
+    }
+
+    private fun listWorktreesInternal(): List<WorktreeInfo> {
         val projectPath = getProjectPath() ?: return emptyList()
         
         return try {
@@ -61,9 +68,13 @@ class GitWorktreeService(private val project: Project) {
      * Gets the current worktree for the project.
      * Returns null if the project is not in a Git worktree.
      */
-    fun getCurrentWorktree(): WorktreeInfo? {
+    fun getCurrentWorktree(): CompletableFuture<WorktreeInfo?> {
+        return runAsync("getCurrentWorktree") { getCurrentWorktreeInternal() }
+    }
+
+    private fun getCurrentWorktreeInternal(): WorktreeInfo? {
         val projectPath = getProjectPath() ?: return null
-        val worktrees = listWorktrees()
+        val worktrees = listWorktreesInternal()
         
         return worktrees.find { worktree ->
             projectPath.startsWith(worktree.path)
@@ -79,6 +90,24 @@ class GitWorktreeService(private val project: Project) {
      * @return WorktreeOperationResult indicating success or failure with details
      */
     fun createWorktree(
+        path: Path,
+        branch: String,
+        createBranch: Boolean = true,
+        allowCreateInitialCommit: Boolean = false,
+        initialCommitMessage: String = DEFAULT_INITIAL_COMMIT_MESSAGE
+    ): CompletableFuture<WorktreeOperationResult> {
+        return runAsync("createWorktree") {
+            createWorktreeInternal(
+                path,
+                branch,
+                createBranch,
+                allowCreateInitialCommit,
+                initialCommitMessage
+            )
+        }
+    }
+
+    private fun createWorktreeInternal(
         path: Path,
         branch: String,
         createBranch: Boolean = true,
@@ -170,7 +199,11 @@ class GitWorktreeService(private val project: Project) {
      * @param force Whether to force deletion even if the worktree is dirty
      * @return WorktreeOperationResult indicating success or failure with details
      */
-    fun deleteWorktree(path: Path, force: Boolean = false): WorktreeOperationResult {
+    fun deleteWorktree(path: Path, force: Boolean = false): CompletableFuture<WorktreeOperationResult> {
+        return runAsync("deleteWorktree") { deleteWorktreeInternal(path, force) }
+    }
+
+    private fun deleteWorktreeInternal(path: Path, force: Boolean): WorktreeOperationResult {
         val projectPath = getProjectPath()
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
@@ -210,7 +243,11 @@ class GitWorktreeService(private val project: Project) {
      * @param newPath The new path for the worktree
      * @return WorktreeOperationResult indicating success or failure with details
      */
-    fun moveWorktree(oldPath: Path, newPath: Path): WorktreeOperationResult {
+    fun moveWorktree(oldPath: Path, newPath: Path): CompletableFuture<WorktreeOperationResult> {
+        return runAsync("moveWorktree") { moveWorktreeInternal(oldPath, newPath) }
+    }
+
+    private fun moveWorktreeInternal(oldPath: Path, newPath: Path): WorktreeOperationResult {
         val projectPath = getProjectPath()
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
@@ -250,7 +287,14 @@ class GitWorktreeService(private val project: Project) {
      * @param target The worktree to compare against.
      * @return A [WorktreeOperationResult] containing diff summary and details.
      */
-    fun compareWorktrees(source: WorktreeInfo, target: WorktreeInfo): WorktreeOperationResult {
+    fun compareWorktrees(source: WorktreeInfo, target: WorktreeInfo): CompletableFuture<WorktreeOperationResult> {
+        return runAsync("compareWorktrees") { compareWorktreesInternal(source, target) }
+    }
+
+    private fun compareWorktreesInternal(
+        source: WorktreeInfo,
+        target: WorktreeInfo
+    ): WorktreeOperationResult {
         val projectPath = getProjectPath()
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
@@ -310,6 +354,20 @@ class GitWorktreeService(private val project: Project) {
         source: WorktreeInfo,
         target: WorktreeInfo,
         fastForwardOnly: Boolean = false
+    ): CompletableFuture<WorktreeOperationResult> {
+        return runAsync("mergeWorktree") {
+            mergeWorktreeInternal(
+                source,
+                target,
+                fastForwardOnly
+            )
+        }
+    }
+
+    private fun mergeWorktreeInternal(
+        source: WorktreeInfo,
+        target: WorktreeInfo,
+        fastForwardOnly: Boolean
     ): WorktreeOperationResult {
         val targetPath = target.path
         if (!targetPath.exists()) {
@@ -380,6 +438,8 @@ class GitWorktreeService(private val project: Project) {
      * Executes a Git command and returns the output.
      */
     private fun executeGitCommand(workingDir: Path?, vararg args: String): ProcessOutput {
+        assertBackgroundThread()
+
         val commandLine = GeneralCommandLine("git")
         commandLine.addParameters(*args)
         
@@ -476,5 +536,20 @@ class GitWorktreeService(private val project: Project) {
             LOG.error("Error creating initial commit", e)
             Failure("Error creating initial commit", e.message ?: "Unknown error")
         }
+    }
+
+    private fun <T> runAsync(operation: String, task: () -> T): CompletableFuture<T> {
+        return CompletableFuture.supplyAsync({
+            try {
+                task()
+            } catch (t: Throwable) {
+                LOG.warn("Async operation '$operation' failed", t)
+                throw t
+            }
+        }, AppExecutorUtil.getAppExecutorService())
+    }
+
+    private fun assertBackgroundThread() {
+        ApplicationManager.getApplication().assertIsNonDispatchThread()
     }
 }

@@ -31,10 +31,20 @@ class MergeWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                val worktrees = service.listWorktrees()
-                ApplicationManager.getApplication().invokeLater({
+        val application = ApplicationManager.getApplication()
+
+        service.listWorktrees()
+            .whenComplete { worktrees, error ->
+                application.invokeLater({
+                    if (error != null || worktrees == null) {
+                        Messages.showErrorDialog(
+                            project,
+                            "Failed to list worktrees: ${error?.message ?: "Unknown error"}",
+                            "Merge Worktrees"
+                        )
+                        return@invokeLater
+                    }
+
                     if (worktrees.size < 2) {
                         Messages.showInfoMessage(
                             project,
@@ -62,9 +72,17 @@ class MergeWorktreeAction : AnAction(), DumbAware {
                         return@invokeLater
                     }
 
-                    ApplicationManager.getApplication().executeOnPooledThread {
-                        val result = service.mergeWorktree(source, target, fastForwardOnly)
-                        ApplicationManager.getApplication().invokeLater({
+                    service.mergeWorktree(source, target, fastForwardOnly).whenComplete { result, mergeError ->
+                        application.invokeLater({
+                            if (mergeError != null || result == null) {
+                                Messages.showErrorDialog(
+                                    project,
+                                    "Failed to merge worktrees: ${mergeError?.message ?: "Unknown error"}",
+                                    "Merge Worktrees"
+                                )
+                                return@invokeLater
+                            }
+
                             if (result.isSuccess) {
                                 notify(
                                     project,
@@ -81,16 +99,7 @@ class MergeWorktreeAction : AnAction(), DumbAware {
                         }, ModalityState.nonModal())
                     }
                 }, ModalityState.nonModal())
-            } catch (ex: Exception) {
-                ApplicationManager.getApplication().invokeLater({
-                    Messages.showErrorDialog(
-                        project,
-                        "Failed to list worktrees: ${ex.message}",
-                        "Merge Worktrees"
-                    )
-                }, ModalityState.nonModal())
             }
-        }
     }
 
     override fun update(e: AnActionEvent) {
@@ -100,7 +109,7 @@ class MergeWorktreeAction : AnAction(), DumbAware {
             return
         }
         val service = GitWorktreeService.getInstance(project)
-        e.presentation.isEnabledAndVisible = service.isGitRepository() && service.listWorktrees().size >= 2
+        e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

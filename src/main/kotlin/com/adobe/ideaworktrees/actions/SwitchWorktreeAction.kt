@@ -23,16 +23,26 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
+        val service = GitWorktreeService.getInstance(project)
+        val application = ApplicationManager.getApplication()
 
-        // Execute Git commands on background thread
-        ApplicationManager.getApplication().executeOnPooledThread {
-            val service = GitWorktreeService.getInstance(project)
-            try {
-                val worktrees = service.listWorktrees()
-                val currentWorktree = service.getCurrentWorktree()
+        service.listWorktrees()
+            .thenCombine(service.getCurrentWorktree()) { worktrees, current -> worktrees to current }
+            .whenComplete { result, error ->
+                application.invokeLater({
+                    if (error != null || result == null) {
+                        NotificationGroupManager.getInstance()
+                            .getNotificationGroup("Git Worktree")
+                            .createNotification(
+                                "Failed to list worktrees: ${error?.message ?: "Unknown error"}",
+                                NotificationType.ERROR
+                            )
+                            .notify(project)
+                        return@invokeLater
+                    }
 
-                // Show popup on EDT
-                ApplicationManager.getApplication().invokeLater({
+                    val (worktrees, currentWorktree) = result
+
                     if (worktrees.isEmpty()) {
                         Messages.showInfoMessage(
                             project,
@@ -42,7 +52,6 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
                         return@invokeLater
                     }
 
-                    // Filter out the current worktree
                     val otherWorktrees = worktrees.filter { it.path != currentWorktree?.path }
 
                     if (otherWorktrees.isEmpty()) {
@@ -54,7 +63,6 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
                         return@invokeLater
                     }
 
-                    // Show popup to select worktree
                     val popup = JBPopupFactory.getInstance().createListPopup(
                         object : BaseListPopupStep<WorktreeInfo>("Switch to Worktree", otherWorktrees) {
                             override fun getTextFor(value: WorktreeInfo): String {
@@ -72,18 +80,7 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
 
                     popup.showCenteredInCurrentWindow(project)
                 }, ModalityState.nonModal())
-            } catch (e: Exception) {
-                ApplicationManager.getApplication().invokeLater({
-                    NotificationGroupManager.getInstance()
-                        .getNotificationGroup("Git Worktree")
-                        .createNotification(
-                            "Failed to list worktrees: ${e.message}",
-                            NotificationType.ERROR
-                        )
-                        .notify(project)
-                }, ModalityState.nonModal())
             }
-        }
     }
 
     private fun switchToWorktree(project: com.intellij.openapi.project.Project, worktree: WorktreeInfo) {
@@ -131,4 +128,3 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
         return ActionUpdateThread.BGT
     }
 }
-

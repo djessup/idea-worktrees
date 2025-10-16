@@ -23,17 +23,28 @@ class RenameWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                val worktrees = service.listWorktrees()
-                val projectRoot = project.basePath?.let { Paths.get(it).toAbsolutePath().normalize().toString() }
+        val application = ApplicationManager.getApplication()
 
-                val candidates = worktrees.filter { worktree ->
-                    val normalizedPath = worktree.path.toAbsolutePath().normalize().toString()
-                    val isProjectRoot = projectRoot != null && normalizedPath == projectRoot
-                    !worktree.isMain && !isProjectRoot
-                }
-                ApplicationManager.getApplication().invokeLater({
+        service.listWorktrees()
+            .whenComplete { worktrees, error ->
+                application.invokeLater({
+                    if (error != null || worktrees == null) {
+                        Messages.showErrorDialog(
+                            project,
+                            "Failed to list worktrees: ${error?.message ?: "Unknown error"}",
+                            "Rename Worktree"
+                        )
+                        return@invokeLater
+                    }
+
+                    val projectRoot = project.basePath?.let { Paths.get(it).toAbsolutePath().normalize().toString() }
+
+                    val candidates = worktrees.filter { worktree ->
+                        val normalizedPath = worktree.path.toAbsolutePath().normalize().toString()
+                        val isProjectRoot = projectRoot != null && normalizedPath == projectRoot
+                        !worktree.isMain && !isProjectRoot
+                    }
+
                     if (candidates.isEmpty()) {
                         Messages.showInfoMessage(
                             project,
@@ -92,9 +103,17 @@ class RenameWorktreeAction : AnAction(), DumbAware {
                         return@invokeLater
                     }
 
-                    ApplicationManager.getApplication().executeOnPooledThread {
-                        val result = service.moveWorktree(worktree.path, newPath)
-                        ApplicationManager.getApplication().invokeLater({
+                    service.moveWorktree(worktree.path, newPath).whenComplete { result, moveError ->
+                        application.invokeLater({
+                            if (moveError != null || result == null) {
+                                Messages.showErrorDialog(
+                                    project,
+                                    "Failed to rename worktree: ${moveError?.message ?: "Unknown error"}",
+                                    "Rename Worktree"
+                                )
+                                return@invokeLater
+                            }
+
                             if (result.isSuccess) {
                                 notify(
                                     project,
@@ -111,16 +130,7 @@ class RenameWorktreeAction : AnAction(), DumbAware {
                         }, ModalityState.nonModal())
                     }
                 }, ModalityState.nonModal())
-            } catch (ex: Exception) {
-                ApplicationManager.getApplication().invokeLater({
-                    Messages.showErrorDialog(
-                        project,
-                        "Failed to list worktrees: ${ex.message}",
-                        "Rename Worktree"
-                    )
-                }, ModalityState.nonModal())
             }
-        }
     }
 
     override fun update(e: AnActionEvent) {
@@ -130,14 +140,7 @@ class RenameWorktreeAction : AnAction(), DumbAware {
             return
         }
         val service = GitWorktreeService.getInstance(project)
-        val worktrees = service.listWorktrees()
-        val projectRoot = project.basePath?.let { Paths.get(it).toAbsolutePath().normalize().toString() }
-        val hasCandidate = worktrees.any { worktree ->
-            val normalizedPath = worktree.path.toAbsolutePath().normalize().toString()
-            val isProjectRoot = projectRoot != null && normalizedPath == projectRoot
-            !worktree.isMain && !isProjectRoot
-        }
-        e.presentation.isEnabledAndVisible = service.isGitRepository() && hasCandidate
+        e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
