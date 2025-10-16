@@ -85,21 +85,21 @@ This document outlines the implementation plan for the IntelliJ Git Worktree plu
 - [x] Commit: "feat: add worktree management actions"
 
 ### Phase 4: Testing
-- [ ] Write integration tests
-- [ ] Test with real Git repositories
-- [ ] Test edge cases (no git repo, no worktrees, etc.)
-- [ ] Manual testing in IDE
-- [ ] Commit: "test: add comprehensive tests for worktree plugin"
+- [x] Write integration tests
+- [x] Test with real Git repositories
+- [x] Test edge cases (no git repo, no worktrees, etc.)
+- [ ] Manual testing in IDE *(pending host environment access)*
+- [x] Commit: "test: add comprehensive tests for worktree plugin"
 
 ### Phase 5: Documentation and Polish
-- [ ] Update plugin.xml with proper metadata
-  - [ ] Plugin name and description
-  - [ ] Vendor information
-  - [ ] Version compatibility
-- [ ] Add icons for actions
-- [ ] Add keyboard shortcuts
-- [ ] Create README.md
-- [ ] Commit: "docs: add plugin metadata and documentation"
+- [x] Update plugin.xml with proper metadata
+  - [x] Plugin name and description
+  - [x] Vendor information
+  - [x] Version compatibility
+- [x] Add icons for actions
+- [x] Add keyboard shortcuts
+- [x] Create README.md
+- [x] Commit: "docs: add plugin metadata and documentation"
 
 ## Git Worktree Commands Reference
 

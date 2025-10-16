@@ -61,28 +61,32 @@
             <action id="com.adobe.ideaworktrees.CreateWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.CreateWorktreeAction"
                     text="Create New Worktree..."
-                    description="Create a new Git worktree">
+                    description="Create a new Git worktree"
+                    icon="AllIcons.Actions.New">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="C"/>
             </action>
 
             <action id="com.adobe.ideaworktrees.SwitchWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.SwitchWorktreeAction"
                     text="Switch Worktree..."
-                    description="Switch to a different Git worktree">
+                    description="Switch to a different Git worktree"
+                    icon="AllIcons.Actions.Refresh">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="S"/>
             </action>
 
             <action id="com.adobe.ideaworktrees.DeleteWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.DeleteWorktreeAction"
                     text="Delete Worktree..."
-                    description="Delete a Git worktree">
+                    description="Delete a Git worktree"
+                    icon="AllIcons.Actions.GC">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="D"/>
             </action>
 
             <action id="com.adobe.ideaworktrees.RenameWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.RenameWorktreeAction"
                     text="Rename Worktree..."
-                    description="Rename a Git worktree by moving it to a new path">
+                    description="Rename a Git worktree by moving it to a new path"
+                    icon="AllIcons.Actions.Edit">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="R"/>
             </action>
 
@@ -91,14 +95,16 @@
             <action id="com.adobe.ideaworktrees.CompareWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.CompareWorktreeAction"
                     text="Compare Worktrees..."
-                    description="Compare two Git worktrees">
+                    description="Compare two Git worktrees"
+                    icon="AllIcons.Actions.Diff">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="P"/>
             </action>
 
             <action id="com.adobe.ideaworktrees.MergeWorktreeAction"
                     class="com.adobe.ideaworktrees.actions.MergeWorktreeAction"
                     text="Merge Worktree..."
-                    description="Merge one Git worktree into another">
+                    description="Merge one Git worktree into another"
+                    icon="AllIcons.Actions.Commit">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="G"/>
             </action>
 
@@ -107,7 +113,8 @@
             <action id="com.adobe.ideaworktrees.ManageWorktreesAction"
                     class="com.adobe.ideaworktrees.actions.ManageWorktreesAction"
                     text="Show All Worktrees"
-                    description="Show information about all Git worktrees">
+                    description="Show information about all Git worktrees"
+                    icon="AllIcons.Actions.ListFiles">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="M"/>
             </action>
 

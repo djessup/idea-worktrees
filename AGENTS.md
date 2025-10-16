@@ -159,6 +159,9 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - Added integration tests covering worktree comparison and merge workflows
 - Added integration-style tests for GitWorktreeService using BasePlatformTestCase with real Git CLI execution
 - Fixed status bar widget initialization by reacting to VCS mapping and Git repository change events (no more manual refresh required)
+
+**Next Steps:**
+1. Manual validation in a full IDE session when `runIde` access is available
 - Added automatic handling for empty repositories when creating worktrees (prompts for and creates an empty initial commit when approved)
 - Implemented folder browser dialog for worktree path selection
   - Auto-suggests path as `../[project-name]-[branch-name]`
