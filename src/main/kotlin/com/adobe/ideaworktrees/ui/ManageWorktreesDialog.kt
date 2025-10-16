@@ -26,6 +26,7 @@ class ManageWorktreesDialog(
 ) : DialogWrapper(project) {
     
     private val worktrees = mutableListOf<WorktreeInfo>()
+    private var currentWorktree: WorktreeInfo? = null
     private val tableModel = WorktreeTableModel()
     private val table = JBTable(tableModel)
     
@@ -81,11 +82,13 @@ class ManageWorktreesDialog(
         // Execute on background thread
         ApplicationManager.getApplication().executeOnPooledThread {
             val loadedWorktrees = service.listWorktrees()
+            val current = service.getCurrentWorktree()
             
             // Update UI on EDT
             ApplicationManager.getApplication().invokeLater({
                 worktrees.clear()
                 worktrees.addAll(loadedWorktrees)
+                currentWorktree = current
                 tableModel.fireTableDataChanged()
                 updateButtonStates()
             }, ModalityState.stateForComponent(table))
@@ -95,7 +98,6 @@ class ManageWorktreesDialog(
     private fun updateButtonStates() {
         val selectedRow = table.selectedRow
         val hasSelection = selectedRow >= 0
-        val currentWorktree = service.getCurrentWorktree()
         
         openButton.isEnabled = hasSelection
         
@@ -227,4 +229,3 @@ class ManageWorktreesDialog(
         override fun getColumnClass(columnIndex: Int): Class<*> = String::class.java
     }
 }
-

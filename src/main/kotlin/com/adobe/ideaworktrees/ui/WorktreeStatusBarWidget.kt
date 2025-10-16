@@ -364,6 +364,7 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                 val service = GitWorktreeService.getInstance(project)
                 try {
                     val worktrees = service.listWorktrees()
+                    val currentWorktree = service.getCurrentWorktree()
 
                     // Show dialog on EDT
                     ApplicationManager.getApplication().invokeLater({
@@ -375,8 +376,6 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                             )
                             return@invokeLater
                         }
-
-                        val currentWorktree = service.getCurrentWorktree()
 
                         val message = buildString {
                             appendLine("Git Worktrees:")
