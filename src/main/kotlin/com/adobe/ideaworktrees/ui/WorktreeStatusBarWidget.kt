@@ -16,6 +16,7 @@ import com.intellij.openapi.ui.popup.ListPopup
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.vcs.ProjectLevelVcsManager
+import com.intellij.openapi.vcs.VcsMappingListener
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.impl.status.EditorBasedStatusBarPopup
 import git4idea.repo.GitRepository
@@ -44,7 +45,7 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
         project.messageBus.connect(this).apply {
             subscribe(
                 ProjectLevelVcsManager.VCS_CONFIGURATION_CHANGED,
-                Runnable { updateCacheAsync() }
+                VcsMappingListener { updateCacheAsync() }
             )
             subscribe(
                 GitWorktreeService.WORKTREE_TOPIC,
@@ -52,11 +53,9 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             )
             subscribe(
                 GitRepository.GIT_REPO_CHANGE,
-                object : GitRepositoryChangeListener {
-                    override fun repositoryChanged(repository: GitRepository) {
-                        if (repository.project == project) {
-                            updateCacheAsync()
-                        }
+                GitRepositoryChangeListener { repository ->
+                    if (repository.project == project) {
+                        updateCacheAsync()
                     }
                 }
             )
