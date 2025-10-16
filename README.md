@@ -141,12 +141,14 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 - Add rename worktree functionality
 - Add worktree pruning action
 - Add support for worktree locking/unlocking
+- Add worktree actions to standard Git/VCS context menu
 
 ## Known Issues
 - Creating new WT with the same name as an existing one is not detected or handled gracefully
+- Creating new WT from another WT formats default folder name as `[current-worktree-name]-[new-worktree-name]` instead of `[project name]-[new-worktree-name]`
 - The UI is not optimised for UX, paths are simple text fields, no defaults provided. 
 - No UI implementation for anything other than "new worktree".
-- Rename allows user to attempt to rename main WT then errors "Failed to move worktree. Details: fatal: '[wt-path]' is a main working tree"
+- Rename allows user to attempt to rename main WT then errors "Failed to move worktree. Details: fatal: '[worktree-path]' is a main working tree"
 - Compare does not attempt to handle or warn about uncommitted changes
 - Compare shows a text-based diff output from CLI instead
 
