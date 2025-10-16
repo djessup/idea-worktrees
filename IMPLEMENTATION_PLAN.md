@@ -52,14 +52,14 @@ This document outlines the implementation plan for the IntelliJ Git Worktree plu
 - [x] Commit: "feat: add GitWorktreeService with core operations"
 
 ### Phase 2: Status Bar Widget
-- [ ] Create WorktreeStatusBarWidgetFactory
-- [ ] Implement WorktreeStatusBarWidget
-  - [ ] Display current worktree name
-  - [ ] Handle click to show popup
-  - [ ] Update on worktree changes
-- [ ] Register widget factory in plugin.xml
-- [ ] Write tests for widget
-- [ ] Commit: "feat: add status bar widget for current worktree"
+- [x] Create WorktreeStatusBarWidgetFactory
+- [x] Implement WorktreeStatusBarWidget
+  - [x] Display current worktree name
+  - [x] Handle click to show popup
+  - [x] Update on worktree changes
+- [x] Register widget factory in plugin.xml
+- [x] Write tests for widget
+- [x] Commit: "feat: add status bar widget for current worktree"
 
 ### Phase 3: Actions
 - [ ] Create WorktreeActionGroup
