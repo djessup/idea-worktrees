@@ -62,17 +62,17 @@ This document outlines the implementation plan for the IntelliJ Git Worktree plu
 - [x] Commit: "feat: add status bar widget for current worktree"
 
 ### Phase 3: Actions
-- [ ] Create WorktreeActionGroup
-- [ ] Implement CreateWorktreeAction
-  - [ ] Show dialog to input worktree name and branch
-  - [ ] Create worktree via service
-  - [ ] Optionally switch to new worktree
-- [ ] Implement SwitchWorktreeAction
-  - [ ] Show list of available worktrees
-  - [ ] Switch project to selected worktree
-- [ ] Implement DeleteWorktreeAction
-  - [ ] Show confirmation dialog
-  - [ ] Delete worktree via service
+- [x] Create WorktreeActionGroup
+- [x] Implement CreateWorktreeAction
+  - [x] Show dialog to input worktree name and branch
+  - [x] Create worktree via service
+  - [x] Optionally switch to new worktree
+- [x] Implement SwitchWorktreeAction
+  - [x] Show list of available worktrees
+  - [x] Switch project to selected worktree
+- [x] Implement DeleteWorktreeAction
+  - [x] Show confirmation dialog
+  - [x] Delete worktree via service
 - [ ] Implement RenameWorktreeAction
   - [ ] Show dialog to input new name
   - [ ] Rename worktree via service
@@ -80,9 +80,9 @@ This document outlines the implementation plan for the IntelliJ Git Worktree plu
   - [ ] Show diff between worktrees
 - [ ] Implement MergeWorktreeAction
   - [ ] Merge worktree into current or another worktree
-- [ ] Register actions in plugin.xml
+- [x] Register actions in plugin.xml
 - [ ] Write tests for actions
-- [ ] Commit: "feat: add worktree management actions"
+- [x] Commit: "feat: add worktree management actions"
 
 ### Phase 4: Testing
 - [ ] Write integration tests
