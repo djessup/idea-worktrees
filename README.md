@@ -146,6 +146,9 @@ Git worktrees allow you to check out multiple branches simultaneously in differe
 - Creating new WT with the same name as an existing one is not detected or handled gracefully
 - The UI is not optimised for UX, paths are simple text fields, no defaults provided. 
 - No UI implementation for anything other than "new worktree".
+- Rename allows user to attempt to rename main WT then errors "Failed to move worktree. Details: fatal: '[wt-path]' is a main working tree"
+- Compare does not attempt to handle or warn about uncommitted changes
+- Compare shows a text-based diff output from CLI instead
 
 ## Contributing
 
