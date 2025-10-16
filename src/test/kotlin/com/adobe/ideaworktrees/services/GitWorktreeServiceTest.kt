@@ -1,5 +1,6 @@
 package com.adobe.ideaworktrees.services
 
+import com.adobe.ideaworktrees.model.WorktreeInfo
 import com.adobe.ideaworktrees.model.WorktreeOperationResult
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -7,6 +8,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.exists
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 /**
  * Exercising [GitWorktreeService] through the IntelliJ test fixture to validate the
@@ -112,7 +115,102 @@ class GitWorktreeServiceTest : BasePlatformTestCase() {
         assertTrue(moved.exists())
     }
 
+    fun testCompareWorktreesDetectsChanges() {
+        val service = GitWorktreeService.getInstance(project)
+
+        val file = projectPath.resolve("sample.txt")
+        file.writeText("main\n")
+        runGit("add", "sample.txt")
+        runGit("commit", "-m", "Add sample file")
+
+        val featurePath = worktreePath("wt-compare")
+        assertTrue(service.createWorktree(featurePath, "feature/compare") is WorktreeOperationResult.Success)
+
+        val featureFile = featurePath.resolve("sample.txt")
+        featureFile.writeText("feature change\n")
+        runGit("add", "sample.txt", workingDir = featurePath)
+        runGit("commit", "-m", "Update sample", workingDir = featurePath)
+
+        val worktrees = service.listWorktrees()
+        val featureWorktree = findWorktreeByBranch(worktrees, "feature/compare", featurePath)
+        val mainWorktree = findMainWorktree(worktrees)
+
+        val compareResult = service.compareWorktrees(featureWorktree, mainWorktree)
+        assertTrue(compareResult is WorktreeOperationResult.Success)
+        val details = compareResult.successDetails()
+        assertTrue("Expected diff details to contain sample.txt, but was: $details", details?.contains("sample.txt") == true)
+    }
+
+    fun testMergeWorktreeFastForward() {
+        val service = GitWorktreeService.getInstance(project)
+
+        val file = projectPath.resolve("merge.txt")
+        file.writeText("base\n")
+        runGit("add", "merge.txt")
+        runGit("commit", "-m", "Base commit")
+
+        val featurePath = worktreePath("wt-merge")
+        assertTrue(service.createWorktree(featurePath, "feature/merge") is WorktreeOperationResult.Success)
+
+        val featureFile = featurePath.resolve("merge.txt")
+        featureFile.writeText("feature update\n")
+        runGit("add", "merge.txt", workingDir = featurePath)
+        runGit("commit", "-m", "Feature update", workingDir = featurePath)
+
+        val worktrees = service.listWorktrees()
+        val featureWorktree = findWorktreeByBranch(worktrees, "feature/merge", featurePath)
+        val mainWorktree = findMainWorktree(worktrees)
+
+        val mergeResult = service.mergeWorktree(featureWorktree, mainWorktree, fastForwardOnly = true)
+        assertTrue(mergeResult is WorktreeOperationResult.Success)
+
+        val mergedContent = file.readText()
+        assertTrue("Expected merged content to include feature changes.", mergedContent.contains("feature update"))
+    }
+
+    private fun findWorktreeByBranch(worktrees: List<WorktreeInfo>, branchName: String, fallbackPath: Path? = null): WorktreeInfo {
+        val normalizedBranch = branchName.removePrefix("refs/heads/")
+        for (info in worktrees) {
+            val rawBranch = info.branch?.trim()
+            val normalized = rawBranch?.removePrefix("refs/heads/")
+            val display = info.displayName.trim()
+            val matches = normalized == normalizedBranch ||
+                rawBranch == branchName ||
+                rawBranch == normalizedBranch ||
+                display == normalizedBranch ||
+                display == branchName
+            if (matches) {
+                return info
+            }
+        }
+
+        if (fallbackPath != null) {
+            val normalizedPath = normalizePath(fallbackPath)
+            for (info in worktrees) {
+                val infoPath = normalizePath(info.path)
+                if (infoPath == normalizedPath) {
+                    return info
+                }
+            }
+        }
+
+        throw NoSuchElementException(
+            "Worktree not found with branch $branchName. Available: ${worktrees.map { it.branch ?: it.path }}"
+        )
+    }
+
+    private fun normalizePath(path: Path): String {
+        return path.toAbsolutePath().normalize().toString().removePrefix("/private")
+    }
+
+    private fun findMainWorktree(worktrees: List<WorktreeInfo>): WorktreeInfo {
+        return worktrees.firstOrNull { normalizePath(it.path) == normalizePath(projectPath) }
+            ?: worktrees.firstOrNull { it.isMain }
+            ?: throw IllegalStateException("Main worktree not found among ${worktrees.map { it.path }}")
+    }
+
     private fun initGitRepository() {
+        FileUtil.delete(projectPath.resolve(".git").toFile())
         runGit("init")
         runGit("config", "user.name", "Test User")
         runGit("config", "user.email", "test@example.com")

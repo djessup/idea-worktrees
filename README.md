@@ -16,6 +16,9 @@ An IntelliJ IDEA plugin that provides ergonomic support for working with multipl
   - Input validation for branch name and path
 - **Switch Worktree**: Switch to a different worktree (opens in new window)
 - **Delete Worktree**: Safely delete a worktree with confirmation
+- **Rename Worktree**: Move a worktree to a new directory with validation
+- **Compare Worktrees**: Generate a Git diff between any two worktrees
+- **Merge Worktrees**: Merge one worktree into another (fast-forward by default)
 - **Manage Worktrees**: View all worktrees in a table with detailed information
   - Table view showing name, branch, path, commit, and status
   - Open, delete, and refresh operations
@@ -25,6 +28,9 @@ An IntelliJ IDEA plugin that provides ergonomic support for working with multipl
 - `Ctrl+Alt+W, C` - Create New Worktree
 - `Ctrl+Alt+W, S` - Switch Worktree
 - `Ctrl+Alt+W, D` - Delete Worktree
+- `Ctrl+Alt+W, R` - Rename Worktree
+- `Ctrl+Alt+W, P` - Compare Worktrees
+- `Ctrl+Alt+W, G` - Merge Worktree
 - `Ctrl+Alt+W, M` - Manage Worktrees
 
 ### Error Handling

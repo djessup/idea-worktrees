@@ -244,6 +244,109 @@ class GitWorktreeService(private val project: Project) {
     }
 
     /**
+     * Generates a diff between two worktrees.
+     *
+     * @param source The worktree providing the changes.
+     * @param target The worktree to compare against.
+     * @return A [WorktreeOperationResult] containing diff summary and details.
+     */
+    fun compareWorktrees(source: WorktreeInfo, target: WorktreeInfo): WorktreeOperationResult {
+        val projectPath = getProjectPath()
+            ?: return WorktreeOperationResult.Failure("Project path not found")
+
+        return try {
+            val range = "${worktreeRef(source)}..${worktreeRef(target)}"
+
+            val statOutput = executeGitCommand(
+                projectPath,
+                "diff", "--stat", "--no-color", range
+            )
+            if (statOutput.exitCode != 0) {
+                val errorMsg = statOutput.stderr.trim().ifEmpty { "Unknown error" }
+                return WorktreeOperationResult.Failure(
+                    "Failed to compare worktrees",
+                    errorMsg
+                )
+            }
+
+            val diffOutput = executeGitCommand(
+                projectPath,
+                "diff", "--no-color", range
+            )
+            if (diffOutput.exitCode != 0) {
+                val errorMsg = diffOutput.stderr.trim().ifEmpty { "Unknown error" }
+                return WorktreeOperationResult.Failure(
+                    "Failed to compare worktrees",
+                    errorMsg
+                )
+            }
+
+            val statText = statOutput.stdout.trim()
+            val diffText = diffOutput.stdout.trim()
+
+            val summary = if (statText.isEmpty()) {
+                "No differences between ${source.displayName} and ${target.displayName}"
+            } else {
+                statText
+            }
+
+            WorktreeOperationResult.Success(summary, diffText.ifBlank { null })
+        } catch (e: Exception) {
+            WorktreeOperationResult.Failure(
+                "Error comparing worktrees",
+                e.message ?: "Unknown error"
+            )
+        }
+    }
+
+    /**
+     * Merges the source worktree into the target worktree.
+     *
+     * @param source The worktree to merge from.
+     * @param target The worktree that will receive the changes.
+     * @param fastForwardOnly Whether to allow only fast-forward merges.
+     */
+    fun mergeWorktree(
+        source: WorktreeInfo,
+        target: WorktreeInfo,
+        fastForwardOnly: Boolean = false
+    ): WorktreeOperationResult {
+        val targetPath = target.path
+        if (!targetPath.exists()) {
+            return WorktreeOperationResult.Failure("Target worktree path does not exist: $targetPath")
+        }
+
+        return try {
+            val args = mutableListOf("merge")
+            if (fastForwardOnly) {
+                args.add("--ff-only")
+            }
+            args.add(worktreeRef(source))
+
+            val output = executeGitCommand(targetPath, *args.toTypedArray())
+            if (output.exitCode != 0) {
+                val errorMsg = output.stderr.trim().ifEmpty { "Unknown error" }
+                return WorktreeOperationResult.Failure(
+                    "Failed to merge ${source.displayName} into ${target.displayName}",
+                    errorMsg
+                )
+            }
+
+            notifyWorktreesChanged()
+
+            WorktreeOperationResult.Success(
+                "Merged ${source.displayName} into ${target.displayName}",
+                output.stdout.trim().ifBlank { null }
+            )
+        } catch (e: Exception) {
+            WorktreeOperationResult.Failure(
+                "Error merging worktree",
+                e.message ?: "Unknown error"
+            )
+        }
+    }
+
+    /**
      * Checks if Git is available in the system.
      */
     fun isGitAvailable(): Boolean {
@@ -351,6 +454,11 @@ class GitWorktreeService(private val project: Project) {
 
     private fun notifyWorktreesChanged() {
         project.messageBus.syncPublisher(WORKTREE_TOPIC).worktreesChanged()
+    }
+
+    private fun worktreeRef(worktree: WorktreeInfo): String {
+        val branch = worktree.branch
+        return branch?.ifBlank { null } ?: worktree.commit
     }
 
     private fun createInitialCommit(projectPath: Path, message: String): WorktreeOperationResult {

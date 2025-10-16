@@ -73,15 +73,15 @@ This document outlines the implementation plan for the IntelliJ Git Worktree plu
 - [x] Implement DeleteWorktreeAction
   - [x] Show confirmation dialog
   - [x] Delete worktree via service
-- [ ] Implement RenameWorktreeAction
-  - [ ] Show dialog to input new name
-  - [ ] Rename worktree via service
-- [ ] Implement CompareWorktreeAction
-  - [ ] Show diff between worktrees
-- [ ] Implement MergeWorktreeAction
-  - [ ] Merge worktree into current or another worktree
+- [x] Implement RenameWorktreeAction
+  - [x] Show dialog to input new name
+  - [x] Rename worktree via service
+- [x] Implement CompareWorktreeAction
+  - [x] Show diff between worktrees
+- [x] Implement MergeWorktreeAction
+  - [x] Merge worktree into current or another worktree
 - [x] Register actions in plugin.xml
-- [ ] Write tests for actions
+- [x] Write tests for actions
 - [x] Commit: "feat: add worktree management actions"
 
 ### Phase 4: Testing

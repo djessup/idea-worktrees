@@ -7,7 +7,10 @@ sealed class WorktreeOperationResult {
     /**
      * Operation completed successfully.
      */
-    data class Success(val message: String = "Operation completed successfully") : WorktreeOperationResult()
+    data class Success(
+        val message: String = "Operation completed successfully",
+        val details: String? = null
+    ) : WorktreeOperationResult()
 
     /**
      * Operation requires an initial commit before it can proceed.
@@ -35,6 +38,11 @@ sealed class WorktreeOperationResult {
      * Get the success message if available.
      */
     fun successMessage(): String? = (this as? Success)?.message
+
+    /**
+     * Get the success details if available.
+     */
+    fun successDetails(): String? = (this as? Success)?.details
 
     /**
      * Get the error message if available.

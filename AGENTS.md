@@ -155,6 +155,8 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 
 **Recent Changes:**
 - Added BasePlatformTestCase coverage for status bar widget factory visibility and default hidden state
+- Added Rename/Compare/Merge worktree actions with dialogs, git CLI integration, and notifications
+- Added integration tests covering worktree comparison and merge workflows
 - Added integration-style tests for GitWorktreeService using BasePlatformTestCase with real Git CLI execution
 - Fixed status bar widget initialization by reacting to VCS mapping and Git repository change events (no more manual refresh required)
 - Added automatic handling for empty repositories when creating worktrees (prompts for and creates an empty initial commit when approved)
