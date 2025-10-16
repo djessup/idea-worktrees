@@ -11,6 +11,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.Messages
+import java.nio.file.Paths
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -23,8 +24,13 @@ class RenameWorktreeAction : AnAction(), DumbAware {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
         val worktrees = service.listWorktrees()
+        val projectRoot = project.basePath?.let { Paths.get(it).toAbsolutePath().normalize().toString() }
 
-        val candidates = worktrees.filter { !it.isMain }
+        val candidates = worktrees.filter { worktree ->
+            val normalizedPath = worktree.path.toAbsolutePath().normalize().toString()
+            val isProjectRoot = projectRoot != null && normalizedPath == projectRoot
+            !worktree.isMain && !isProjectRoot
+        }
         if (candidates.isEmpty()) {
             Messages.showInfoMessage(
                 project,
@@ -111,7 +117,13 @@ class RenameWorktreeAction : AnAction(), DumbAware {
         }
         val service = GitWorktreeService.getInstance(project)
         val worktrees = service.listWorktrees()
-        e.presentation.isEnabledAndVisible = service.isGitRepository() && worktrees.any { !it.isMain }
+        val projectRoot = project.basePath?.let { Paths.get(it).toAbsolutePath().normalize().toString() }
+        val hasCandidate = worktrees.any { worktree ->
+            val normalizedPath = worktree.path.toAbsolutePath().normalize().toString()
+            val isProjectRoot = projectRoot != null && normalizedPath == projectRoot
+            !worktree.isMain && !isProjectRoot
+        }
+        e.presentation.isEnabledAndVisible = service.isGitRepository() && hasCandidate
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
