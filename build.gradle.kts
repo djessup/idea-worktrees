@@ -24,6 +24,8 @@ dependencies {
         // Add Git plugin for VCS integration
         bundledPlugin("Git4Idea")
     }
+
+    testImplementation("junit:junit:4.13.2")
 }
 
 intellijPlatform {

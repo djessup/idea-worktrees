@@ -39,17 +39,17 @@ This document outlines the implementation plan for the IntelliJ Git Worktree plu
 
 ### Phase 1: Setup and Core Service
 - [x] Update AGENTS.md with understanding
-- [ ] Create data models (WorktreeInfo)
-- [ ] Implement GitWorktreeService
-  - [ ] Execute git worktree commands
-  - [ ] Parse git worktree list output
-  - [ ] Detect current worktree
-  - [ ] Create new worktree
-  - [ ] Delete worktree
-  - [ ] Rename worktree (move)
-- [ ] Register service in plugin.xml
-- [ ] Write unit tests for service
-- [ ] Commit: "feat: add GitWorktreeService with core operations"
+- [x] Create data models (WorktreeInfo)
+- [x] Implement GitWorktreeService
+  - [x] Execute git worktree commands
+  - [x] Parse git worktree list output
+  - [x] Detect current worktree
+  - [x] Create new worktree
+- [x] Delete worktree
+- [x] Rename worktree (move)
+- [x] Register service in plugin.xml
+- [x] Write unit tests for service
+- [x] Commit: "feat: add GitWorktreeService with core operations"
 
 ### Phase 2: Status Bar Widget
 - [ ] Create WorktreeStatusBarWidgetFactory
@@ -138,4 +138,3 @@ git worktree prune
 - Need to handle cases where Git is not available
 - Need to handle non-Git projects gracefully
 - Consider performance implications of frequent git commands
-

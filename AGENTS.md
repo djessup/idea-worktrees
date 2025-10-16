@@ -154,6 +154,7 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - docs: update README with completed features (71ac131)
 
 **Recent Changes:**
+- Added integration-style tests for GitWorktreeService using BasePlatformTestCase with real Git CLI execution
 - Fixed status bar widget initialization by reacting to VCS mapping and Git repository change events (no more manual refresh required)
 - Added automatic handling for empty repositories when creating worktrees (prompts for and creates an empty initial commit when approved)
 - Implemented folder browser dialog for worktree path selection
@@ -177,4 +178,4 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 1. Manual testing in IDE using `./gradlew runIde`
 2. Test all features with real Git repositories and worktrees
 3. Consider adding rename, compare, and merge actions (future enhancements)
-4. Add test coverage when test framework is working
+4. Expand automated tests to cover UI widgets and action flows
