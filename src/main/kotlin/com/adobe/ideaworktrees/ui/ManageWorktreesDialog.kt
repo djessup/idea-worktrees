@@ -16,6 +16,7 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import javax.swing.*
 import javax.swing.table.AbstractTableModel
+import org.jetbrains.annotations.TestOnly
 
 /**
  * Dialog for managing Git worktrees with a table view.
@@ -133,6 +134,17 @@ class ManageWorktreesDialog(
             selected.path != currentWorktree?.path && !selected.isMain
         }
     }
+
+    @TestOnly
+    fun refreshForTest() {
+        refreshWorktrees()
+    }
+
+    @TestOnly
+    fun snapshotWorktrees(): List<WorktreeInfo> = synchronized(worktrees) { worktrees.toList() }
+
+    @TestOnly
+    fun currentWorktreeForTest(): WorktreeInfo? = currentWorktree
 
     private fun openSelectedWorktree() {
         val selectedRow = table.selectedRow

@@ -1,14 +1,7 @@
 package com.adobe.ideaworktrees.services
 
-import com.adobe.ideaworktrees.model.WorktreeInfo
+import com.adobe.ideaworktrees.AbstractGitWorktreeTestCase
 import com.adobe.ideaworktrees.model.WorktreeOperationResult
-import com.intellij.openapi.util.io.FileUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -16,29 +9,9 @@ import kotlin.io.path.writeText
 /**
  * Exercising [GitWorktreeService] through the IntelliJ test fixture to validate the
  * most critical Git workflows. These tests follow the official plugin testing guidance by
- * extending [BasePlatformTestCase], which provides a lightweight IDE project environment.
+ * extending [AbstractGitWorktreeTestCase], which provisions a lightweight git project.
  */
-class GitWorktreeServiceTest : BasePlatformTestCase() {
-
-    private lateinit var worktreesRoot: Path
-    private val gitExecutable: String by lazy { selectGitExecutable() }
-
-    private val projectPath: Path
-        get() = Paths.get(requireNotNull(project.basePath) { "Project basePath should not be null" })
-
-    override fun setUp() {
-        super.setUp()
-        worktreesRoot = Files.createTempDirectory("git-worktree-service-wts")
-        initGitRepository()
-    }
-
-    override fun tearDown() {
-        try {
-            FileUtil.delete(worktreesRoot.toFile())
-        } finally {
-            super.tearDown()
-        }
-    }
+class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
 
     fun testCreateWorktreeRequiresInitialCommit() {
         val service = GitWorktreeService.getInstance(project)
@@ -120,16 +93,14 @@ class GitWorktreeServiceTest : BasePlatformTestCase() {
     fun testCompareWorktreesDetectsChanges() {
         val service = GitWorktreeService.getInstance(project)
 
-        val file = projectPath.resolve("sample.txt")
-        file.writeText("main\n")
+        projectPath.resolve("sample.txt").writeText("main\n")
         runGit("add", "sample.txt")
         runGit("commit", "-m", "Add sample file")
 
         val featurePath = worktreePath("wt-compare")
         assertTrue(service.createWorktree(featurePath, "feature/compare").await() is WorktreeOperationResult.Success)
 
-        val featureFile = featurePath.resolve("sample.txt")
-        featureFile.writeText("feature change\n")
+        featurePath.resolve("sample.txt").writeText("feature change\n")
         runGit("add", "sample.txt", workingDir = featurePath)
         runGit("commit", "-m", "Update sample", workingDir = featurePath)
 
@@ -146,16 +117,14 @@ class GitWorktreeServiceTest : BasePlatformTestCase() {
     fun testMergeWorktreeFastForward() {
         val service = GitWorktreeService.getInstance(project)
 
-        val file = projectPath.resolve("merge.txt")
-        file.writeText("base\n")
+        projectPath.resolve("merge.txt").writeText("base\n")
         runGit("add", "merge.txt")
         runGit("commit", "-m", "Base commit")
 
         val featurePath = worktreePath("wt-merge")
         assertTrue(service.createWorktree(featurePath, "feature/merge").await() is WorktreeOperationResult.Success)
 
-        val featureFile = featurePath.resolve("merge.txt")
-        featureFile.writeText("feature update\n")
+        featurePath.resolve("merge.txt").writeText("feature update\n")
         runGit("add", "merge.txt", workingDir = featurePath)
         runGit("commit", "-m", "Feature update", workingDir = featurePath)
 
@@ -166,107 +135,7 @@ class GitWorktreeServiceTest : BasePlatformTestCase() {
         val mergeResult = service.mergeWorktree(featureWorktree, mainWorktree, fastForwardOnly = true).await()
         assertTrue(mergeResult is WorktreeOperationResult.Success)
 
-        val mergedContent = file.readText()
+        val mergedContent = projectPath.resolve("merge.txt").readText()
         assertTrue("Expected merged content to include feature changes.", mergedContent.contains("feature update"))
     }
-
-    private fun findWorktreeByBranch(worktrees: List<WorktreeInfo>, branchName: String, fallbackPath: Path? = null): WorktreeInfo {
-        val normalizedBranch = branchName.removePrefix("refs/heads/")
-        for (info in worktrees) {
-            val rawBranch = info.branch?.trim()
-            val normalized = rawBranch?.removePrefix("refs/heads/")
-            val display = info.displayName.trim()
-            val matches = normalized == normalizedBranch ||
-                rawBranch == branchName ||
-                rawBranch == normalizedBranch ||
-                display == normalizedBranch ||
-                display == branchName
-            if (matches) {
-                return info
-            }
-        }
-
-        if (fallbackPath != null) {
-            val normalizedPath = normalizePath(fallbackPath)
-            for (info in worktrees) {
-                val infoPath = normalizePath(info.path)
-                if (infoPath == normalizedPath) {
-                    return info
-                }
-            }
-        }
-
-        throw NoSuchElementException(
-            "Worktree not found with branch $branchName. Available: ${worktrees.map { it.branch ?: it.path }}"
-        )
-    }
-
-    private fun <T> CompletableFuture<T>.await(): T = get(30, TimeUnit.SECONDS)
-
-    private fun normalizePath(path: Path): String {
-        return path.toAbsolutePath().normalize().toString().removePrefix("/private")
-    }
-
-    private fun findMainWorktree(worktrees: List<WorktreeInfo>): WorktreeInfo {
-        return worktrees.firstOrNull { normalizePath(it.path) == normalizePath(projectPath) }
-            ?: worktrees.firstOrNull { it.isMain }
-            ?: throw IllegalStateException("Main worktree not found among ${worktrees.map { it.path }}")
-    }
-
-    private fun initGitRepository() {
-        FileUtil.delete(projectPath.resolve(".git").toFile())
-        runGit("init")
-        runGit("config", "user.name", "Test User")
-        runGit("config", "user.email", "test@example.com")
-    }
-
-    private fun createEmptyCommit(message: String) {
-        runGit("commit", "--allow-empty", "-m", message)
-    }
-
-    private fun runGit(vararg args: String, workingDir: Path = projectPath): String {
-        val command = mutableListOf(gitExecutable)
-        command.addAll(args)
-
-        Files.createDirectories(workingDir)
-
-        val processBuilder = ProcessBuilder(command)
-            .directory(workingDir.toFile())
-            .redirectErrorStream(true)
-
-        // Ensure PATH from the outer process is visible when the tests run on the IDE's Executor.
-        processBuilder.environment()["PATH"] = System.getenv("PATH")
-
-        val process = processBuilder.start()
-
-        val output = process.inputStream.bufferedReader().use { it.readText() }
-        val exitCode = process.waitFor()
-        if (exitCode != 0) {
-            throw AssertionError("Git command failed: ${command.joinToString(" ")}\n$output")
-        }
-        return output
-    }
-
-    private fun worktreePath(name: String): Path = worktreesRoot.resolve(name)
-
-    private fun selectGitExecutable(): String {
-        val explicit = System.getenv("GIT_EXECUTABLE")?.takeIf { it.isNotBlank() }
-        if (explicit != null && Files.isExecutable(Paths.get(explicit))) {
-            return explicit
-        }
-
-        val likelyPaths = listOf(
-            Paths.get("/usr/bin/git"),
-            Paths.get("/usr/local/bin/git")
-        )
-
-        for (candidate in likelyPaths) {
-            if (Files.isExecutable(candidate)) {
-                return candidate.toString()
-            }
-        }
-
-        return "git"
-    }
-
 }

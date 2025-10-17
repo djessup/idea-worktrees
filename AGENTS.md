@@ -123,7 +123,14 @@ IntelliJ Platform has strict threading requirements. Violating these causes erro
 6. All Git operations run on background threads to avoid EDT violations
 
 **Implementation Plan:**
-See IMPLEMENTATION_PLAN.md for detailed task breakdown.
+See docs/IMPLEMENTATION_PLAN.md for detailed task breakdown.
+
+**Testing Strategy:**
+See docs/TESTING_GUIDELINES.md for Jetbrains IDE Plugin testing best practices.
+
+**Issues/Bugs:**
+See docs/BUG_REPORTS.md for a list of known issues and bugs reported. 
+Endeavour to address these at the earliest opportunity. 
 
 **Completed:**
 1. ✅ Core service (GitWorktreeService) with worktree operations
@@ -136,23 +143,6 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 8. ✅ Table-based manage worktrees dialog with Open/Delete/Refresh
 9. ✅ Keyboard shortcuts for all actions
 
-**Commits:**
-- feat: add GitWorktreeService with core operations (847c9d1)
-- feat: add status bar widget for current worktree (d379d36)
-- feat: add worktree management actions (4b62ba3)
-- docs: add plugin metadata and README (c1148d3)
-- fix: implement status bar widget actions (da95b3a)
-- fix: avoid blocking Git commands in ReadAction (a5db92a)
-- fix: cache worktree data to avoid blocking in ReadAction (ae14186)
-- fix: add Git4Idea plugin dependency to plugin.xml (188344d)
-- fix: run Git commands on background threads in actions (4931db7)
-- fix: correct git worktree add command argument order (16ab6a1)
-- fix: eliminate EDT violations and handle repositories with no commits (4a8790e)
-- feat: add folder browser for worktree path selection (2a413e1)
-- feat: improve manage worktrees UI with table view (8570901)
-- feat: add keyboard shortcuts for worktree actions (1eb14ec)
-- docs: update README with completed features (71ac131)
-
 **Recent Changes:**
 - Added BasePlatformTestCase coverage for status bar widget factory visibility and default hidden state
 - Added Rename/Compare/Merge worktree actions with dialogs, git CLI integration, and notifications
@@ -161,6 +151,8 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - Fixed status bar widget initialization by reacting to VCS mapping and Git repository change events (no more manual refresh required)
 - Ensured all Git CLI calls (list/compare/merge) run off the EDT by loading worktree data on pooled threads before presenting UI
 - Centralized background execution inside `GitWorktreeService` using `CompletableFuture`, updated all UI callers to await via callbacks, and tightened tests to await async results
+- Introduced `AbstractGitWorktreeTestCase`, a test-only `forceGitRepositoryForTests` toggle, and new Manage dialog/status bar widget UI tests that exercise async cache refresh logic
+_Check the git log to see the most recent changes._
 
 **Next Steps:**
 1. Manual validation in a full IDE session when `runIde` access is available
@@ -181,4 +173,4 @@ See IMPLEMENTATION_PLAN.md for detailed task breakdown.
   - Ctrl/Cmd+Alt+W, M: Manage Worktrees
 2. Test all features with real Git repositories and worktrees
 3. Consider adding rename, compare, and merge actions (future enhancements)
-4. Expand automated tests to cover UI widgets and action flows
+4. Extend automated coverage to action flows (create/switch/compare) once UI test harness is available

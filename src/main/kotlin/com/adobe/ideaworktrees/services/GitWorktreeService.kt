@@ -21,6 +21,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import kotlin.io.path.exists
+import org.jetbrains.annotations.TestOnly
 
 /**
  * Service for managing Git worktrees.
@@ -38,6 +39,9 @@ class GitWorktreeService(private val project: Project) {
         
         fun getInstance(project: Project): GitWorktreeService = project.service()
     }
+    
+    @Volatile
+    private var treatAsGitRepositoryInTests: Boolean = false
 
     /**
      * Lists all worktrees for the current project's Git repository.
@@ -421,6 +425,9 @@ class GitWorktreeService(private val project: Project) {
      * This method is safe to call from a ReadAction as it uses IntelliJ's VCS APIs.
      */
     fun isGitRepository(): Boolean {
+        if (treatAsGitRepositoryInTests) {
+            return true
+        }
         return try {
             val repositoryManager = VcsRepositoryManager.getInstance(project)
             // Check if there's at least one Git repository in the project
@@ -551,5 +558,10 @@ class GitWorktreeService(private val project: Project) {
 
     private fun assertBackgroundThread() {
         ApplicationManager.getApplication().assertIsNonDispatchThread()
+    }
+
+    @TestOnly
+    fun forceGitRepositoryForTests(force: Boolean) {
+        treatAsGitRepositoryInTests = force
     }
 }

@@ -1,10 +1,15 @@
 package com.adobe.ideaworktrees.ui
 
+import com.adobe.ideaworktrees.services.GitWorktreeService
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.vcs.ProjectLevelVcsManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
+import java.nio.file.Paths
 
 class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
 
@@ -15,6 +20,13 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
     }
 
     fun testWidgetHiddenWhenProjectNotGitRepository() {
+        val projectPath = Paths.get(requireNotNull(project.basePath))
+        FileUtil.delete(projectPath.resolve(".git").toFile())
+        ProjectLevelVcsManager.getInstance(project).setDirectoryMappings(emptyList())
+
+        val service = GitWorktreeService.getInstance(project)
+        assertFalse("Sanity check: test project should not be treated as git repo", service.isGitRepository())
+
         val factory = WorktreeStatusBarWidgetFactory()
         val widget = factory.createWidget(project) as WorktreeStatusBarWidget
 
@@ -30,5 +42,4 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
 
         assertSame(hiddenValue, state)
     }
-
 }

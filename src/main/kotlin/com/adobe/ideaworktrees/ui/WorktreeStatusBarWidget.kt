@@ -24,6 +24,7 @@ import git4idea.repo.GitRepositoryChangeListener
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing.Icon
+import org.jetbrains.annotations.TestOnly
 
 /**
  * Status bar widget that displays the current Git worktree.
@@ -164,6 +165,17 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                 }, ModalityState.nonModal())
             }
     }
+
+    @TestOnly
+    fun refreshCacheForTest(onComplete: (() -> Unit)? = null) {
+        updateCacheAsync(onComplete)
+    }
+
+    @TestOnly
+    fun getCachedWorktreesForTest(): List<WorktreeInfo> = cachedWorktrees.get()
+
+    @TestOnly
+    fun getCachedCurrentWorktreeForTest(): WorktreeInfo? = cachedCurrentWorktree.get()
 
     /**
      * Sealed class representing items in the worktree popup menu.
