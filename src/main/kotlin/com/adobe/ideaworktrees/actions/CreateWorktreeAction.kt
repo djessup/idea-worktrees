@@ -205,13 +205,13 @@ private class CreateWorktreeDialog(private val project: com.intellij.openapi.pro
     private fun updateDefaultPath() {
         val branchName = branchNameField.text.trim()
         if (branchName.isNotEmpty()) {
-            val projectPath = project.basePath?.let { File(it) }
-            val projectName = projectPath?.name ?: "project"
-            val defaultParent = projectPath?.parentFile
-            if (defaultParent != null) {
-                val suggestedName = "$projectName-$branchName"
-                pathField.text = File(defaultParent, suggestedName).absolutePath
-            }
+                val projectPath = project.basePath?.let { File(it) }
+                val defaultParent = projectPath?.parentFile
+                if (defaultParent != null) {
+                    val projectPathAsPath = project.basePath?.let { java.nio.file.Paths.get(it) }
+                    val suggestedName = com.adobe.ideaworktrees.ui.WorktreeStatusBarWidget.suggestDirectoryName(projectPathAsPath, branchName)
+                    pathField.text = File(defaultParent, suggestedName).absolutePath
+                }
         }
     }
 

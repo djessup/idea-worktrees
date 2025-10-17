@@ -38,7 +38,10 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
         @JvmStatic
         fun suggestDirectoryName(projectPath: java.nio.file.Path?, branchName: String): String {
             val projectFolderName = projectPath?.fileName?.toString() ?: "project"
-            return "$projectFolderName-$branchName"
+            // Replace any characters that are unsafe in file names (including slashes) with hyphens
+            val sanitizedBranch = branchName.replace(Regex("[^A-Za-z0-9._-]+"), "-")
+                .trim { it == '-' || it == '.' }
+            return "$projectFolderName-$sanitizedBranch"
         }
     }
 
