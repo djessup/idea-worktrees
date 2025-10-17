@@ -42,4 +42,12 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
 
         assertSame(hiddenValue, state)
     }
+
+    fun testSuggestDirectoryNameUsesProjectFolder() {
+        val projectPath = java.nio.file.Paths.get(requireNotNull(project.basePath))
+        val branch = "feature/widget"
+        val suggested = WorktreeStatusBarWidget.suggestDirectoryName(projectPath, branch)
+        val expected = projectPath.fileName.toString() + "-" + branch
+        assertEquals(expected, suggested)
+    }
 }

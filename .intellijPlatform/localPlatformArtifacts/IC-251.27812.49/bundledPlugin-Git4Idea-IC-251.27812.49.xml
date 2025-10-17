@@ -4,8 +4,8 @@
     <conf name="default" visibility="public"/>
   </configurations>
   <publications>
-    <artifact name="vcs-git" ext="jar" conf="default" url="plugins/vcs-git/lib"/>
     <artifact name="git4idea-rt" ext="jar" conf="default" url="plugins/vcs-git/lib"/>
+    <artifact name="vcs-git" ext="jar" conf="default" url="plugins/vcs-git/lib"/>
   </publications>
   <dependencies>
     <dependency org="bundledModule" name="intellij.platform.collaborationTools" rev="IC-251.27812.49"/>

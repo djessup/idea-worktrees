@@ -34,6 +34,12 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
     companion object {
         const val ID = "com.adobe.ideaworktrees.WorktreeStatusBarWidget"
         private const val EMPTY_TEXT = "No Worktree"
+        // Visible for tests: compute suggested directory name for new worktrees
+        @JvmStatic
+        fun suggestDirectoryName(projectPath: java.nio.file.Path?, branchName: String): String {
+            val projectFolderName = projectPath?.fileName?.toString() ?: "project"
+            return "$projectFolderName-$branchName"
+        }
     }
 
     private val service: GitWorktreeService = GitWorktreeService.getInstance(project)
@@ -278,8 +284,7 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
 
             val projectPath = Paths.get(project.basePath ?: return)
             // Suggest directory name using the project folder name to keep naming consistent
-            val projectFolderName = projectPath.fileName?.toString() ?: "project"
-            val defaultDirName = "$projectFolderName-$branchName"
+            val defaultDirName = suggestDirectoryName(projectPath, branchName)
 
             val dirName = Messages.showInputDialog(
                 project,
