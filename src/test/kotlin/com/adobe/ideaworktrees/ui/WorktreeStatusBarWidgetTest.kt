@@ -25,6 +25,7 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
         ProjectLevelVcsManager.getInstance(project).setDirectoryMappings(emptyList())
 
         val service = GitWorktreeService.getInstance(project)
+        service.forceGitRepositoryForTests(false)
         assertFalse("Sanity check: test project should not be treated as git repo", service.isGitRepository())
 
         val factory = WorktreeStatusBarWidgetFactory()

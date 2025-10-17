@@ -154,6 +154,9 @@ Endeavour to address these at the earliest opportunity.
 - Introduced `AbstractGitWorktreeTestCase`, a test-only `forceGitRepositoryForTests` toggle, and new Manage dialog/status bar widget UI tests that exercise async cache refresh logic
 _Check the git log to see the most recent changes._
 
+**In Progress:**
+- Issue #1 (duplicate worktree name validation) on branch `fix-issue-1-duplicate-worktree-validation`; add preflight checks in `GitWorktreeService` plus regression test coverage.
+
 **Next Steps:**
 1. Manual validation in a full IDE session when `runIde` access is available
 - Added automatic handling for empty repositories when creating worktrees (prompts for and creates an empty initial commit when approved)
