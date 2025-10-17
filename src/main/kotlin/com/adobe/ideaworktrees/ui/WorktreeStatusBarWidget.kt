@@ -276,16 +276,20 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                 Messages.getQuestionIcon()
             ) ?: return
 
+            val projectPath = Paths.get(project.basePath ?: return)
+            // Suggest directory name using the project folder name to keep naming consistent
+            val projectFolderName = projectPath.fileName?.toString() ?: "project"
+            val defaultDirName = "$projectFolderName-$branchName"
+
             val dirName = Messages.showInputDialog(
                 project,
                 "Enter the directory name for the new worktree:",
                 "Create New Worktree",
                 Messages.getQuestionIcon(),
-                branchName,
+                defaultDirName,
                 null
             ) ?: return
 
-            val projectPath = Paths.get(project.basePath ?: return)
             val parentPath = projectPath.parent
             if (parentPath == null) {
                 Messages.showErrorDialog(
