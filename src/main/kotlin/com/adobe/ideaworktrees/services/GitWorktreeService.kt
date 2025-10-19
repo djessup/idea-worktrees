@@ -17,6 +17,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.messages.Topic
 import git4idea.repo.GitRepository
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -300,6 +301,16 @@ class GitWorktreeService(private val project: Project) {
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
         return try {
+            val worktrees = listWorktreesInternal()
+            val normalizedOld = normalizePath(oldPath)
+            val targetWorktree = worktrees.firstOrNull { isSamePath(normalizedOld, it.path) }
+            if (targetWorktree?.isMain == true) {
+                return WorktreeOperationResult.Failure(
+                    "Renaming the main worktree is not supported.",
+                    "Git requires the primary worktree to remain at ${targetWorktree.path}."
+                )
+            }
+
             val output = executeGitCommand(
                 projectPath,
                 "worktree", "move",
@@ -534,6 +545,12 @@ class GitWorktreeService(private val project: Project) {
                     i++
                 }
                 
+                val isMainWorktree = determineIfMainWorktree(
+                    path = path,
+                    isBare = isBare,
+                    defaultIfUnknown = worktrees.isEmpty()
+                )
+
                 if (commit.isNotEmpty()) {
                     worktrees.add(
                         WorktreeInfo(
@@ -542,7 +559,8 @@ class GitWorktreeService(private val project: Project) {
                             commit = commit,
                             isLocked = isLocked,
                             isPrunable = isPrunable,
-                            isBare = isBare
+                            isBare = isBare,
+                            isMain = isMainWorktree
                         )
                     )
                 }
@@ -608,4 +626,59 @@ class GitWorktreeService(private val project: Project) {
     fun forceGitRepositoryForTests(force: Boolean) {
         treatAsGitRepositoryInTests = force
     }
+}
+
+internal fun determineIfMainWorktree(path: Path, isBare: Boolean, defaultIfUnknown: Boolean = false): Boolean {
+    if (isBare) return true
+
+    val gitLocation = path.resolve(".git")
+
+    if (Files.isDirectory(gitLocation)) {
+        return true
+    }
+
+    if (Files.isSymbolicLink(gitLocation)) {
+        val linkTarget = runCatching { Files.readSymbolicLink(gitLocation) }.getOrNull()
+        val resolved = resolveGitdirCandidate(gitLocation, linkTarget)
+        return resolved?.let { !it.containsWorktreesSegment() } ?: defaultIfUnknown
+    }
+
+    if (Files.isRegularFile(gitLocation)) {
+        val rawContents = runCatching { Files.readString(gitLocation) }.getOrNull()
+            ?: return defaultIfUnknown
+
+        val gitDirLine = rawContents.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.startsWith("gitdir:", ignoreCase = true) }
+            ?: return defaultIfUnknown
+
+        val gitDirValue = gitDirLine.substringAfter(":", "").trim()
+        if (gitDirValue.isEmpty()) {
+            return defaultIfUnknown
+        }
+
+        val resolved = resolveGitdirCandidate(gitLocation, Paths.get(gitDirValue))
+        return resolved?.let { !it.containsWorktreesSegment() } ?: defaultIfUnknown
+    }
+
+    return defaultIfUnknown
+}
+
+private fun resolveGitdirCandidate(gitLocation: Path, candidate: Path?): Path? {
+    candidate ?: return null
+    val normalized = if (candidate.isAbsolute) {
+        candidate
+    } else {
+        gitLocation.parent?.resolve(candidate) ?: return null
+    }
+    return runCatching { normalized.normalize() }.getOrNull()
+}
+
+private fun Path.containsWorktreesSegment(): Boolean {
+    for (segment in this) {
+        if (segment.toString().equals("worktrees", ignoreCase = true)) {
+            return true
+        }
+    }
+    return false
 }

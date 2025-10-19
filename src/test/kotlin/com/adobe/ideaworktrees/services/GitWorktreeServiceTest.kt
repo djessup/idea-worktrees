@@ -113,6 +113,43 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue(moved.exists())
     }
 
+    fun testListWorktreesMarksMainWorktree() {
+        createEmptyCommit("initial")
+
+        val service = GitWorktreeService.getInstance(project)
+        val featurePath = worktreePath("wt-main-marker")
+
+        assertTrue(
+            service.createWorktree(featurePath, "feature/main-marker").await() is WorktreeOperationResult.Success
+        )
+
+        val worktrees = service.listWorktrees().await()
+        val main = findMainWorktree(worktrees)
+        assertTrue("Main worktree should be flagged as main", main.isMain)
+
+        val featureInfo = worktrees.first {
+            normalizePath(it.path) == normalizePath(featurePath)
+        }
+        assertFalse("Secondary worktrees should not be marked as main", featureInfo.isMain)
+    }
+
+    fun testMoveWorktreeRejectsMainWorktree() {
+        createEmptyCommit("initial")
+
+        val service = GitWorktreeService.getInstance(project)
+        val main = findMainWorktree(service.listWorktrees().await())
+        val destination = worktreePath("wt-main-new-location")
+
+        val result = service.moveWorktree(main.path, destination).await()
+        assertTrue("Expected move operation to fail for the main worktree", result is WorktreeOperationResult.Failure)
+
+        val failure = result as WorktreeOperationResult.Failure
+        assertTrue(
+            "Failure message should mention main worktree: ${failure.error}",
+            failure.error.contains("main worktree", ignoreCase = true)
+        )
+    }
+
     fun testCompareWorktreesDetectsChanges() {
         val service = GitWorktreeService.getInstance(project)
 

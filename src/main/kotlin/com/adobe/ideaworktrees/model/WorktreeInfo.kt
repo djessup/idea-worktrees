@@ -11,6 +11,7 @@ import java.nio.file.Path
  * @property isLocked Whether the worktree is locked
  * @property isPrunable Whether the worktree can be pruned (directory doesn't exist)
  * @property isBare Whether this is a bare repository
+ * @property isMain Whether this worktree is the primary/main checkout for the repository
  */
 data class WorktreeInfo(
     val path: Path,
@@ -18,7 +19,8 @@ data class WorktreeInfo(
     val commit: String,
     val isLocked: Boolean = false,
     val isPrunable: Boolean = false,
-    val isBare: Boolean = false
+    val isBare: Boolean = false,
+    val isMain: Boolean = false
 ) {
     /**
      * Returns the name of the worktree (last component of the path).
@@ -32,16 +34,7 @@ data class WorktreeInfo(
     val displayName: String
         get() = branch ?: commit.take(7)
 
-    /**
-     * Returns true if this is the main worktree (bare repository).
-     * FIXME: Doesn't seem to work. Manage worktrees shows all worktrees with status "-"
-     *        Should show MAIN on the "parent" worktree.
-     */
-    val isMain: Boolean
-        get() = isBare
-
     override fun toString(): String {
-        return "WorktreeInfo(path=$path, branch=$branch, commit=${commit.take(7)})"
+        return "WorktreeInfo(path=$path, branch=$branch, commit=${commit.take(7)}, isMain=$isMain, isLocked=$isLocked, isPrunable=$isPrunable)"
     }
 }
-

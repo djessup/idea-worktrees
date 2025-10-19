@@ -48,7 +48,7 @@ class RenameWorktreeAction : AnAction(), DumbAware {
                     if (candidates.isEmpty()) {
                         Messages.showInfoMessage(
                             project,
-                            "No additional worktrees available to rename.",
+                            "No additional worktrees available to rename. The main worktree and the current project worktree cannot be renamed.",
                             "Rename Worktree"
                         )
                         return@invokeLater
