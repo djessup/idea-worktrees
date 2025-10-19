@@ -180,6 +180,35 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue("Expected diff details to contain sample.txt, but was: $details", details?.contains("sample.txt") == true)
     }
 
+    fun testCompareWorktreesFailsWhenSourceDirty() {
+        val service = GitWorktreeService.getInstance(project)
+
+        projectPath.resolve("dirty.txt").writeText("main\n")
+        runGit("add", "dirty.txt")
+        runGit("commit", "-m", "Base commit")
+
+        val featurePath = worktreePath("wt-dirty-compare")
+        assertTrue(service.createWorktree(featurePath, "feature/dirty").await() is WorktreeOperationResult.Success)
+
+        featurePath.resolve("dirty.txt").writeText("uncommitted change\n")
+
+        val worktrees = service.listWorktrees().await()
+        val featureWorktree = findWorktreeByBranch(worktrees, "feature/dirty", featurePath)
+        val mainWorktree = findMainWorktree(worktrees)
+
+        val compareResult = service.compareWorktrees(featureWorktree, mainWorktree).await()
+        assertTrue(compareResult is WorktreeOperationResult.Failure)
+        val failure = compareResult as WorktreeOperationResult.Failure
+        assertTrue(
+            "Expected failure message to mention uncommitted changes, but was: ${failure.error}",
+            failure.error.contains("uncommitted", ignoreCase = true)
+        )
+        assertTrue(
+            "Expected failure details to mention the dirty worktree path, but was: ${failure.details}",
+            failure.details?.contains(featurePath.fileName.toString()) == true
+        )
+    }
+
     fun testMergeWorktreeFastForward() {
         val service = GitWorktreeService.getInstance(project)
 

@@ -358,6 +358,45 @@ class GitWorktreeService(private val project: Project) {
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
         return try {
+            val dirtyWorktrees = mutableListOf<WorktreeInfo>()
+            val inspected = listOf(source, target)
+            for (worktree in inspected) {
+                if (!worktree.path.exists()) {
+                    return WorktreeOperationResult.Failure(
+                        "Failed to compare worktrees",
+                        "Worktree path does not exist: ${worktree.path}"
+                    )
+                }
+
+                val statusOutput = executeGitCommand(
+                    worktree.path,
+                    "status",
+                    "--porcelain"
+                )
+
+                if (statusOutput.exitCode != 0) {
+                    val errorMsg = statusOutput.stderr.trim().ifEmpty { "Unknown error" }
+                    return WorktreeOperationResult.Failure(
+                        "Failed to compare worktrees",
+                        "Unable to inspect ${worktree.displayName}: $errorMsg"
+                    )
+                }
+
+                if (statusOutput.stdout.isNotBlank()) {
+                    dirtyWorktrees.add(worktree)
+                }
+            }
+
+            if (dirtyWorktrees.isNotEmpty()) {
+                val summary = dirtyWorktrees.joinToString(separator = "\n") { candidate ->
+                    "\"${candidate.displayName}\" at ${candidate.path}"
+                }
+                return WorktreeOperationResult.Failure(
+                    "Uncommitted changes detected.",
+                    "Commit, stash, or discard changes in:\n$summary"
+                )
+            }
+
             val range = "${worktreeRef(source)}..${worktreeRef(target)}"
 
             val statOutput = executeGitCommand(

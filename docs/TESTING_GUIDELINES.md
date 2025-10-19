@@ -2,6 +2,8 @@
 
 This document distills testing best practices from the [IntelliJ Platform Plugin SDK](https://plugins.jetbrains.com/docs/intellij/testing-plugins.html) for the Git Worktree plugin project.
 
+Follow and read the official documentation links throughout this document for more details and the latest information. 
+
 ## Testing Philosophy
 
 **Model-Level Functional Tests**: The IntelliJ Platform favors testing features as a whole rather than isolated unit tests. Tests run in a headless environment with real production implementations, providing stability and requiring minimal maintenance despite internal refactorings.
