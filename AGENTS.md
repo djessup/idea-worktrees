@@ -53,6 +53,10 @@ Modifications to this file must be made below this line. Do not modify or remove
 2. `./gradlew koverXmlReport --console=plain` (verifies coverage threshold)
 3. `./gradlew runIde` for manual validation when available
 
+> **Coverage quality gate:** The Gradle Kover plugin currently fails verification if overall line coverage drops below 80%. Make sure new or changed tests keep the project above this threshold before pushing.
+
+Need deeper guidance on testing workflows? 
+
 Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interactions unless an integration test is required. Keep tests deterministic and independent.
 
 ## Development Guardrails
@@ -71,10 +75,17 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
 
 ## Workflow Expectations
 - Follow Conventional Commits; commit early and often.
-- Include regression tests for all bug fixes and significant features.
+- Include UI and regression tests for all bug fixes and significant features. See [docs/TESTING_GUIDELINES.md](docs/TESTING_GUIDELINES.md).
 - Update this file when architecture or process guidance changes.
-- Reference `docs/BUG_REPORTS.md` for outstanding issues before starting new work.
 - Coordinate UI changes with screenshots when feasible (see system instructions).
+- Record issues and tasks with `gh issue create` immediately upon discovery
+
+**Issues/Bugs:**
+- Run `gh issues list` (preferred) for a list of current known issues.
+- Report newly discovered issues via `gh issue create`.
+- Endeavour to address issues at the earliest opportunity.
+- Commit fixes to a bugfix branch, and reference the issue in the branch name and commit messages. Open a PR when the branch is ready for review.
+
 
 ## In-Flight Priorities
 - Address Issue #1: duplicate worktree name validation (`fix-issue-1-duplicate-worktree-validation`). Ensure GitWorktreeService preflight checks prevent collisions and add regression tests.
