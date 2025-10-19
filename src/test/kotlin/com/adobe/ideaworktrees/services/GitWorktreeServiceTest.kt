@@ -2,6 +2,7 @@ package com.adobe.ideaworktrees.services
 
 import com.adobe.ideaworktrees.AbstractGitWorktreeTestCase
 import com.adobe.ideaworktrees.model.WorktreeOperationResult
+import java.nio.file.Files
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -40,6 +41,28 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
             runCatching { candidate.path.toRealPath() == targetRealPath }.getOrDefault(false)
         }
         assertTrue("Expected worktree paths: ${listed.map { it.path }} to contain $targetRealPath", hasMatch)
+    }
+
+    fun testCreateWorktreeRejectsDuplicateName() {
+        createEmptyCommit("initial")
+
+        val service = GitWorktreeService.getInstance(project)
+        val first = worktreePath("wt-shared-name")
+        assertTrue(
+            "Initial worktree creation should succeed",
+            service.createWorktree(first, "feature/shared").await() is WorktreeOperationResult.Success
+        )
+
+        val alternateParent = worktreesRoot.resolve("alt-parent")
+        Files.createDirectories(alternateParent)
+        val second = alternateParent.resolve("wt-shared-name")
+
+        val result = service.createWorktree(second, "feature/shared-duplicate").await()
+
+        assertTrue("Expected duplicate worktree creation to fail", result is WorktreeOperationResult.Failure)
+        val failure = result as WorktreeOperationResult.Failure
+        assertTrue("Failure message should mention existing name", failure.error.contains("already exists"))
+        assertFalse("Duplicate worktree directory should not be created", second.exists())
     }
 
     fun testAllowCreateInitialCommit() {

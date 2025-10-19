@@ -122,6 +122,30 @@ class GitWorktreeService(private val project: Project) {
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
         return try {
+            val worktrees = listWorktreesInternal()
+            val normalizedTarget = normalizePath(path)
+
+            val conflictingPath = worktrees.firstOrNull { isSamePath(normalizedTarget, it.path) }
+            if (conflictingPath != null) {
+                return WorktreeOperationResult.Failure(
+                    error = "A worktree already exists at '${conflictingPath.path}'.",
+                    details = "Choose a different folder name for the new worktree."
+                )
+            }
+
+            val targetName = normalizedTarget.fileName?.toString()
+            if (!targetName.isNullOrBlank()) {
+                val conflictingName = worktrees.firstOrNull { existing ->
+                    existing.name.equals(targetName, ignoreCase = isFileSystemCaseInsensitive())
+                }
+                if (conflictingName != null) {
+                    return WorktreeOperationResult.Failure(
+                        error = "A worktree named '$targetName' already exists.",
+                        details = "Existing worktree location: ${conflictingName.path}"
+                    )
+                }
+            }
+
             // Check if repository has commits
             var hasCommits = hasCommits(projectPath)
             var initialCommitCreated = false
@@ -182,6 +206,26 @@ class GitWorktreeService(private val project: Project) {
                 e.message ?: "Unknown error"
             )
         }
+    }
+
+    private fun normalizePath(path: Path): Path {
+        return runCatching { path.toRealPath() }.getOrElse {
+            path.toAbsolutePath().normalize()
+        }
+    }
+
+    private fun isSamePath(target: Path, other: Path): Boolean {
+        val normalizedOther = normalizePath(other)
+        return if (isFileSystemCaseInsensitive()) {
+            target.toString().equals(normalizedOther.toString(), ignoreCase = true)
+        } else {
+            target == normalizedOther
+        }
+    }
+
+    private fun isFileSystemCaseInsensitive(): Boolean {
+        val osName = System.getProperty("os.name").lowercase()
+        return osName.contains("win") || osName.contains("mac") || osName.contains("darwin")
     }
 
     /**
