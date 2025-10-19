@@ -43,4 +43,14 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
 
         assertSame(hiddenValue, state)
     }
+
+    fun testSuggestDirectoryNameUsesProjectFolder() {
+        val projectPath = java.nio.file.Paths.get(requireNotNull(project.basePath))
+        val branch = "feature/widget"
+        val suggested = WorktreeStatusBarWidget.suggestDirectoryName(projectPath, branch)
+    // Compute expected sanitized branch name using same rules as the helper
+    val sanitizedBranch = branch.replace(Regex("[^A-Za-z0-9._-]+"), "-").trim { it == '-' || it == '.' }
+    val expected = projectPath.fileName.toString() + "-" + sanitizedBranch
+    assertEquals(expected, suggested)
+    }
 }

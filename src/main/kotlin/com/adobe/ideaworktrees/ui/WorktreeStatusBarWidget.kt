@@ -34,6 +34,15 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
     companion object {
         const val ID = "com.adobe.ideaworktrees.WorktreeStatusBarWidget"
         private const val EMPTY_TEXT = "No Worktree"
+        // Visible for tests: compute suggested directory name for new worktrees
+        @JvmStatic
+        fun suggestDirectoryName(projectPath: java.nio.file.Path?, branchName: String): String {
+            val projectFolderName = projectPath?.fileName?.toString() ?: "project"
+            // Replace any characters that are unsafe in file names (including slashes) with hyphens
+            val sanitizedBranch = branchName.replace(Regex("[^A-Za-z0-9._-]+"), "-")
+                .trim { it == '-' || it == '.' }
+            return "$projectFolderName-$sanitizedBranch"
+        }
     }
 
     private val service: GitWorktreeService = GitWorktreeService.getInstance(project)
@@ -276,16 +285,19 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                 Messages.getQuestionIcon()
             ) ?: return
 
+            val projectPath = Paths.get(project.basePath ?: return)
+            // Suggest directory name using the project folder name to keep naming consistent
+            val defaultDirName = suggestDirectoryName(projectPath, branchName)
+
             val dirName = Messages.showInputDialog(
                 project,
                 "Enter the directory name for the new worktree:",
                 "Create New Worktree",
                 Messages.getQuestionIcon(),
-                branchName,
+                defaultDirName,
                 null
             ) ?: return
 
-            val projectPath = Paths.get(project.basePath ?: return)
             val parentPath = projectPath.parent
             if (parentPath == null) {
                 Messages.showErrorDialog(
