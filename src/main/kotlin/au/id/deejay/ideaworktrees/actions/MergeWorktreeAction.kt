@@ -2,13 +2,11 @@ package au.id.deejay.ideaworktrees.actions
 
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
+import au.id.deejay.ideaworktrees.utils.WorktreeAsyncOperations
+import au.id.deejay.ideaworktrees.utils.WorktreeResultHandler
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
@@ -31,75 +29,55 @@ class MergeWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
-        val application = ApplicationManager.getApplication()
 
-        service.listWorktrees()
-            .whenComplete { worktrees, error ->
-                application.invokeLater({
-                    if (error != null || worktrees == null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to list worktrees: ${error?.message ?: "Unknown error"}",
-                            "Merge Worktrees"
-                        )
-                        return@invokeLater
-                    }
-
-                    if (worktrees.size < 2) {
-                        Messages.showInfoMessage(
-                            project,
-                            "You need at least two worktrees to perform a merge.",
-                            "Merge Worktrees"
-                        )
-                        return@invokeLater
-                    }
-
-                    val dialog = MergeWorktreesDialog(project, worktrees)
-                    if (!dialog.showAndGet()) {
-                        return@invokeLater
-                    }
-
-                    val (source, target, fastForwardOnly) = dialog.getSelection()
-
-                    val confirm = Messages.showYesNoDialog(
+        WorktreeAsyncOperations.loadWorktrees(
+            project = project,
+            service = service,
+            onSuccess = { worktrees ->
+                if (worktrees.size < 2) {
+                    Messages.showInfoMessage(
                         project,
-                        "Merge '${source.displayName}' into '${target.displayName}'?\n\n" +
-                            "This will run 'git merge${if (fastForwardOnly) " --ff-only" else ""} ${source.displayName}'.",
-                        "Merge Worktrees",
-                        Messages.getWarningIcon()
+                        "You need at least two worktrees to perform a merge.",
+                        "Merge Worktrees"
                     )
-                    if (confirm != Messages.YES) {
-                        return@invokeLater
-                    }
+                    return@loadWorktrees
+                }
 
-                    service.mergeWorktree(source, target, fastForwardOnly).whenComplete { result, mergeError ->
-                        application.invokeLater({
-                            if (mergeError != null || result == null) {
-                                Messages.showErrorDialog(
-                                    project,
-                                    "Failed to merge worktrees: ${mergeError?.message ?: "Unknown error"}",
-                                    "Merge Worktrees"
-                                )
-                                return@invokeLater
-                            }
+                val dialog = MergeWorktreesDialog(project, worktrees)
+                if (!dialog.showAndGet()) {
+                    return@loadWorktrees
+                }
 
-                            if (result.isSuccess) {
-                                notify(
-                                    project,
-                                    "Worktree Merge",
-                                    result.successMessage() ?: "Merge completed successfully.",
-                                    NotificationType.INFORMATION
-                                )
-                            } else {
-                                val message = result.errorMessage() ?: "Failed to merge worktrees."
-                                val details = result.errorDetails()
-                                val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
-                                Messages.showErrorDialog(project, fullMessage, "Merge Worktrees")
-                            }
-                        }, ModalityState.nonModal())
-                    }
-                }, ModalityState.nonModal())
+                val (source, target, fastForwardOnly) = dialog.getSelection()
+
+                val confirm = Messages.showYesNoDialog(
+                    project,
+                    "Merge '${source.displayName}' into '${target.displayName}'?\n\n" +
+                        "This will run 'git merge${if (fastForwardOnly) " --ff-only" else ""} ${source.displayName}'.",
+                    "Merge Worktrees",
+                    Messages.getWarningIcon()
+                )
+                if (confirm != Messages.YES) {
+                    return@loadWorktrees
+                }
+
+                service.mergeWorktree(source, target, fastForwardOnly).thenAccept { result ->
+                    WorktreeResultHandler.handle(
+                        project = project,
+                        result = result,
+                        successTitle = "Worktree Merge",
+                        errorTitle = "Merge Worktrees"
+                    )
+                }
+            },
+            onError = { error ->
+                Messages.showErrorDialog(
+                    project,
+                    "Failed to list worktrees: ${error.message ?: "Unknown error"}",
+                    "Merge Worktrees"
+                )
             }
+        )
     }
 
     override fun update(e: AnActionEvent) {
@@ -113,13 +91,6 @@ class MergeWorktreeAction : AnAction(), DumbAware {
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
-    private fun notify(project: com.intellij.openapi.project.Project, title: String, message: String, type: NotificationType) {
-        NotificationGroupManager.getInstance()
-            .getNotificationGroup("Git Worktree")
-            .createNotification(title, message, type)
-            .notify(project)
-    }
 }
 
 private class MergeWorktreesDialog(
