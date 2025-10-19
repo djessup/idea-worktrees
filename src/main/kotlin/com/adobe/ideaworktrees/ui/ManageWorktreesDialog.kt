@@ -31,6 +31,8 @@ class ManageWorktreesDialog(
     private val tableModel = WorktreeTableModel()
     private val table = JBTable(tableModel)
 
+    // Buttons
+    private val createButton = JButton("Create") // TODO: Wire up create button
     private val openButton = JButton("Open")
     private val deleteButton = JButton("Delete")
     private val refreshButton = JButton("Refresh")
@@ -46,6 +48,7 @@ class ManageWorktreesDialog(
         }
 
         // Set up button actions
+        createButton.addActionListener { createNewWorktree() }
         openButton.addActionListener { openSelectedWorktree() }
         deleteButton.addActionListener { deleteSelectedWorktree() }
         refreshButton.addActionListener { refreshWorktrees() }
@@ -54,6 +57,10 @@ class ManageWorktreesDialog(
         refreshWorktrees()
 
         init()
+    }
+
+    private fun createNewWorktree() {
+        TODO("Not yet implemented")
     }
 
     override fun createCenterPanel(): JComponent {
@@ -152,11 +159,13 @@ class ManageWorktreesDialog(
 
         val worktree = worktrees[selectedRow]
 
-        val result = Messages.showYesNoDialog(
+        // TODO: Offer to open in the same window, new window, or cancel
+        val result = Messages.showYesNoCancelDialog(
             project,
             "Open worktree '${worktree.displayName}' in a new window?",
             "Open Worktree",
-            Messages.getQuestionIcon()
+            Messages.getQuestionIcon(),
+
         )
 
         if (result == Messages.YES) {
@@ -173,7 +182,9 @@ class ManageWorktreesDialog(
         val result = Messages.showYesNoDialog(
             project,
             "Are you sure you want to delete the worktree at:\n${worktree.path}\n\n" +
-                    "This will remove the worktree directory and all its contents.",
+                "This will remove the worktree directory and all its contents.\n\n" +
+                "<b>Uncommitted changes will be lost!</b> " +
+                "This operation cannot be undone.",
             "Confirm Delete Worktree",
             Messages.getWarningIcon()
         )
@@ -250,7 +261,7 @@ class ManageWorktreesDialog(
      * Table model for displaying worktrees.
      */
     private inner class WorktreeTableModel : AbstractTableModel() {
-        private val columnNames = arrayOf("Name", "Branch", "Path", "Commit", "Status")
+        private val columnNames = arrayOf("s", "Name", "Branch", "Path", "Commit", "Status")
 
         override fun getRowCount(): Int = worktrees.size
 
@@ -263,9 +274,10 @@ class ManageWorktreesDialog(
 
             val worktree = worktrees[rowIndex]
             return when (columnIndex) {
+                0 -> worktree.path == currentWorktree?.path
                 0 -> {
                     val prefix = if (worktree.path == currentWorktree?.path) "* " else ""
-                    "$prefix${worktree.displayName}"
+                    "<b>$prefix${worktree.displayName}</b>"
                 }
                 1 -> worktree.branch ?: "(detached)"
                 2 -> worktree.path.toString()
