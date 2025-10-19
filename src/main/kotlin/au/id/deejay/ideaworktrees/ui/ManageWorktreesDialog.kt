@@ -2,11 +2,10 @@ package au.id.deejay.ideaworktrees.ui
 
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
+import au.id.deejay.ideaworktrees.utils.WorktreeAsyncOperations
+import au.id.deejay.ideaworktrees.utils.WorktreeNotifications
+import au.id.deejay.ideaworktrees.utils.WorktreeResultHandler
 import com.intellij.ide.impl.ProjectUtil
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
@@ -87,46 +86,36 @@ class ManageWorktreesDialog(
     }
 
     private fun refreshWorktrees() {
-        val application = ApplicationManager.getApplication()
-        val modality = ModalityState.stateForComponent(table)
-
         if (!service.isGitRepository()) {
-            application.invokeLater({
+            worktrees.clear()
+            currentWorktree = null
+            tableModel.fireTableDataChanged()
+            updateButtonStates()
+            return
+        }
+
+        WorktreeAsyncOperations.loadWorktreesWithCurrent(
+            project = project,
+            service = service,
+            onSuccess = { loadedWorktrees, current ->
+                worktrees.clear()
+                worktrees.addAll(loadedWorktrees)
+                currentWorktree = current
+                tableModel.fireTableDataChanged()
+                updateButtonStates()
+            },
+            onError = { error ->
                 worktrees.clear()
                 currentWorktree = null
                 tableModel.fireTableDataChanged()
                 updateButtonStates()
-            }, modality)
-            return
-        }
-
-        service.listWorktrees()
-            .thenCombine(service.getCurrentWorktree()) { loaded, current -> loaded to current }
-            .whenComplete { result, error ->
-                application.invokeLater({
-                    if (error != null || result == null) {
-                        worktrees.clear()
-                        currentWorktree = null
-                        tableModel.fireTableDataChanged()
-                        updateButtonStates()
-                        NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Failed to load worktrees",
-                                error?.message ?: "Unknown error",
-                                NotificationType.ERROR
-                            )
-                            .notify(project)
-                    } else {
-                        val (loadedWorktrees, current) = result
-                        worktrees.clear()
-                        worktrees.addAll(loadedWorktrees)
-                        currentWorktree = current
-                        tableModel.fireTableDataChanged()
-                        updateButtonStates()
-                    }
-                }, modality)
+                WorktreeNotifications.showError(
+                    project = project,
+                    title = "Failed to Load Worktrees",
+                    message = error.message ?: "Unknown error"
+                )
             }
+        )
     }
 
     private fun updateButtonStates() {
@@ -203,58 +192,17 @@ class ManageWorktreesDialog(
             false
         }
 
-        val application = ApplicationManager.getApplication()
-        val modality = ModalityState.stateForComponent(table)
-
-        service.deleteWorktree(worktree.path, force)
-            .whenComplete { result, error ->
-                application.invokeLater({
-                    if (error != null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to delete worktree: ${error.message ?: "Unknown error"}",
-                            "Error Deleting Worktree"
-                        )
-                        return@invokeLater
-                    }
-
-                    if (result == null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to delete worktree: Unknown error",
-                            "Error Deleting Worktree"
-                        )
-                        return@invokeLater
-                    }
-
-                    if (result.isSuccess) {
-                        NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Worktree Deleted",
-                                result.successMessage() ?: "Deleted worktree successfully",
-                                NotificationType.INFORMATION
-                            )
-                            .notify(project)
-
-                        refreshWorktrees()
-                    } else {
-                        val errorMsg = result.errorMessage() ?: "Failed to delete worktree"
-                        val details = result.errorDetails()
-                        val fullMessage = if (details != null) {
-                            "$errorMsg\n\nDetails: $details"
-                        } else {
-                            errorMsg
-                        }
-
-                        Messages.showErrorDialog(
-                            project,
-                            fullMessage,
-                            "Error Deleting Worktree"
-                        )
-                    }
-                }, modality)
+        service.deleteWorktree(worktree.path, force).thenAccept { result ->
+            WorktreeResultHandler.handle(
+                project = project,
+                result = result,
+                successTitle = "Worktree Deleted",
+                errorTitle = "Error Deleting Worktree"
+            )
+            if (result.isSuccess) {
+                refreshWorktrees()
             }
+        }
     }
 
     /**

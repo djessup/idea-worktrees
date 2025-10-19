@@ -152,7 +152,7 @@
 
 ## Phase 3: Migrate UI Components
 
-- [ ] 12. Migrate ManageWorktreesDialog to use new utilities
+- [x] 12. Migrate ManageWorktreesDialog to use new utilities
     - Open `src/main/kotlin/com/adobe/ideaworktrees/ui/ManageWorktreesDialog.kt`
     - Replace async pattern in `refreshWorktrees()` with `WorktreeAsyncOperations.loadWorktreesWithCurrent`
     - Replace notification calls with `WorktreeNotifications.*` calls
@@ -163,7 +163,7 @@
     - Commit: `refactor(ui): migrate ManageWorktreesDialog to use new utilities (SPEC-001)`
     - _Requirements: 1.1, 1.9, 1.10, 3.1, 3.2, 3.9, 4.3, 4.6, 5.1, 5.2, 5.7, 5.8, 7.4, 7.5_
 
-- [ ] 13. Migrate WorktreeStatusBarWidget to use new utilities
+- [~] 13. Migrate WorktreeStatusBarWidget to use new utilities
     - Open `src/main/kotlin/com/adobe/ideaworktrees/ui/WorktreeStatusBarWidget.kt`
     - Replace notification calls with `WorktreeNotifications.*` calls
     - Replace `handleResult()` method in embedded CreateWorktreeDialog with `WorktreeResultHandler.handle()`
