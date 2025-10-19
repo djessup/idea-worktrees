@@ -128,9 +128,18 @@ See docs/IMPLEMENTATION_PLAN.md for detailed task breakdown.
 **Testing Strategy:**
 See docs/TESTING_GUIDELINES.md for Jetbrains IDE Plugin testing best practices.
 
+## Build & Test Quick Start
+
+- `./gradlew test` – executes the unit and integration tests; required before sending any PR.
+- `./gradlew koverXmlReport` – generates the XML coverage report that our CI consumes.
+
+> **Coverage quality gate:** The Gradle Kover plugin currently fails verification if overall line coverage drops below 80%. Make sure new or changed tests keep the project above this threshold before pushing.
+
+Need deeper guidance on testing workflows? See [docs/TESTING_GUIDELINES.md](docs/TESTING_GUIDELINES.md).
+
 **Issues/Bugs:**
-See docs/BUG_REPORTS.md for a list of known issues and bugs reported. 
-Endeavour to address these at the earliest opportunity. 
+See docs/BUG_REPORTS.md for a list of known issues and bugs reported.
+Endeavour to address these at the earliest opportunity.
 
 **Completed:**
 1. ✅ Core service (GitWorktreeService) with worktree operations
