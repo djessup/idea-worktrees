@@ -2,6 +2,7 @@ plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.1.0"
     id("org.jetbrains.intellij.platform") version "2.7.1"
+    id("org.jetbrains.kotlinx.kover") version "0.8.1"
 }
 
 group = "com.adobe"
@@ -53,3 +54,17 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
+
+kover {
+    reports {
+        filters {
+            includes {
+                classes(
+                    "com.adobe.ideaworktrees.services.*",
+                    "com.adobe.ideaworktrees.model.*"
+                )
+            }
+        }
+    }
+}
+
