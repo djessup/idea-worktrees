@@ -2,7 +2,7 @@
 
 ## Phase 1: Create Utility Classes
 
-- [ ] 1. Create WorktreeNotifications utility class with comprehensive tests
+- [x] 1. Create WorktreeNotifications utility class with comprehensive tests
     - Create `src/main/kotlin/com/adobe/ideaworktrees/utils/WorktreeNotifications.kt`
     - Implement `showSuccess()`, `showError()`, `showWarning()`, `showInfo()` methods
     - Implement `showErrorWithDetails()` with proper formatting logic
@@ -15,7 +15,7 @@
     - Run tests: `./gradlew test --tests "WorktreeNotificationsTest"`
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 6.1, 6.4, 6.5, 6.6, 7.2, 7.3_
 
-- [ ] 2. Create WorktreeResultHandler utility class with comprehensive tests
+- [x] 2. Create WorktreeResultHandler utility class with comprehensive tests
     - Create `src/main/kotlin/com/adobe/ideaworktrees/utils/WorktreeResultHandler.kt`
     - Implement `handle()` method with all parameters (successTitle, errorTitle, promptToOpen, worktreePath, onInitialCommitRequired)
     - Implement Success result handling (show notification, optional prompt to open)
@@ -34,7 +34,7 @@
     - Run tests: `./gradlew test --tests "WorktreeResultHandlerTest"`
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 6.2, 6.4, 6.5, 6.6, 7.2, 7.3_
 
-- [ ] 3. Create WorktreeAsyncOperations utility class with comprehensive tests
+- [x] 3. Create WorktreeAsyncOperations utility class with comprehensive tests
     - Create `src/main/kotlin/com/adobe/ideaworktrees/utils/WorktreeAsyncOperations.kt`
     - Implement `loadWorktreesWithCurrent()` method using thenCombine for parallel execution
     - Implement `loadWorktrees()` method for simple worktree loading
@@ -54,7 +54,7 @@
     - Run tests: `./gradlew test --tests "WorktreeAsyncOperationsTest"`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 6.3, 6.4, 6.5, 6.6, 7.2, 7.3_
 
-- [ ] 4. Commit utility classes
+- [~] 4. Commit utility classes
     - Run full test suite: `./gradlew test`
     - Verify all new tests pass
     - Verify no compiler warnings introduced
