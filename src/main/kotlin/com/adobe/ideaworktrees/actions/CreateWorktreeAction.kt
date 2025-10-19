@@ -255,9 +255,49 @@ private class CreateWorktreeDialog(private val project: com.intellij.openapi.pro
             return com.intellij.openapi.ui.ValidationInfo("Worktree path cannot be empty", pathField)
         }
 
+        // Validate path length (Windows has a 260 character limit for paths)
+        if (path.length > MAX_PATH_LENGTH) {
+            return com.intellij.openapi.ui.ValidationInfo(
+                "Path is too long (${path.length} characters). Maximum is $MAX_PATH_LENGTH characters for Windows compatibility.",
+                pathField
+            )
+        }
+
+        // Validate against Windows reserved filenames
+        val pathFile = File(path)
+        val directoryName = pathFile.name
+        if (isWindowsReservedName(directoryName)) {
+            return com.intellij.openapi.ui.ValidationInfo(
+                "Directory name '$directoryName' is a reserved Windows filename and cannot be used.",
+                pathField
+            )
+        }
+
         return null
     }
 
     fun getBranchName(): String = branchNameField.text.trim()
     fun getWorktreePath(): String = pathField.text.trim()
+
+    companion object {
+        // Windows MAX_PATH constant
+        private const val MAX_PATH_LENGTH = 260
+
+        // Windows reserved filenames (case-insensitive)
+        private val WINDOWS_RESERVED_NAMES = setOf(
+            "CON", "PRN", "AUX", "NUL",
+            "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+            "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+        )
+
+        /**
+         * Checks if a filename is a Windows reserved name.
+         * Reserved names are case-insensitive and can optionally have an extension.
+         */
+        private fun isWindowsReservedName(name: String): Boolean {
+            // Check the name without extension
+            val nameWithoutExtension = name.substringBeforeLast('.', name).uppercase()
+            return nameWithoutExtension in WINDOWS_RESERVED_NAMES
+        }
+    }
 }
