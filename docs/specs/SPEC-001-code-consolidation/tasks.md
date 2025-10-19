@@ -138,7 +138,7 @@
     - Commit: `refactor(actions): migrate MergeWorktreeAction to use new utilities (SPEC-001)`
     - _Requirements: 1.1, 1.9, 1.10, 2.1, 2.2, 3.5, 3.6, 3.9, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.5, 5.8, 7.4, 7.5_
 
-- [~] 11. Migrate CreateWorktreeAction to use new utilities
+- [x] 11. Migrate CreateWorktreeAction to use new utilities
     - Open `src/main/kotlin/com/adobe/ideaworktrees/actions/CreateWorktreeAction.kt`
     - Replace notification calls in `handleResult()` with `WorktreeNotifications.*` calls
     - Replace entire `handleResult()` method body with `WorktreeResultHandler.handle()` call

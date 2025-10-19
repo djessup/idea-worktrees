@@ -2,14 +2,10 @@ package au.id.deejay.ideaworktrees.actions
 
 import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
-import com.intellij.ide.impl.ProjectUtil
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
+import au.id.deejay.ideaworktrees.utils.WorktreeResultHandler
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.Messages
@@ -55,31 +51,19 @@ class CreateWorktreeAction : AnAction(), DumbAware {
 
         val service = GitWorktreeService.getInstance(project)
 
-        val application = ApplicationManager.getApplication()
         lateinit var submitCreateRequest: (Boolean) -> Unit
 
         fun handleResult(result: WorktreeOperationResult) {
             when (result) {
                 is WorktreeOperationResult.Success -> {
-                    NotificationGroupManager.getInstance()
-                        .getNotificationGroup("Git Worktree")
-                        .createNotification(
-                            "Worktree Created",
-                            result.message,
-                            NotificationType.INFORMATION
-                        )
-                        .notify(project)
-
-                    val openWorktree = Messages.showYesNoDialog(
-                        project,
-                        "Would you like to open the new worktree in a new window?",
-                        "Open Worktree",
-                        Messages.getQuestionIcon()
+                    WorktreeResultHandler.handle(
+                        project = project,
+                        result = result,
+                        successTitle = "Worktree Created",
+                        errorTitle = "Error Creating Worktree",
+                        promptToOpen = true,
+                        worktreePath = worktreePath
                     )
-
-                    if (openWorktree == Messages.YES) {
-                        ProjectUtil.openOrImport(worktreePath, project, false)
-                    }
                 }
                 is WorktreeOperationResult.RequiresInitialCommit -> {
                     val response = Messages.showYesNoDialog(
@@ -100,18 +84,11 @@ class CreateWorktreeAction : AnAction(), DumbAware {
                     }
                 }
                 is WorktreeOperationResult.Failure -> {
-                    val errorMsg = result.error
-                    val details = result.details
-                    val fullMessage = if (details != null) {
-                        "$errorMsg\n\nDetails: $details"
-                    } else {
-                        errorMsg
-                    }
-
-                    Messages.showErrorDialog(
-                        project,
-                        fullMessage,
-                        "Error Creating Worktree"
+                    WorktreeResultHandler.handle(
+                        project = project,
+                        result = result,
+                        successTitle = "Worktree Created",
+                        errorTitle = "Error Creating Worktree"
                     )
                 }
             }
@@ -123,24 +100,8 @@ class CreateWorktreeAction : AnAction(), DumbAware {
                 branchName,
                 createBranch = true,
                 allowCreateInitialCommit = allowInitialCommit
-            ).whenComplete { result, error ->
-                application.invokeLater({
-                    if (error != null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to create worktree: ${error.message ?: "Unknown error"}",
-                            "Error Creating Worktree"
-                        )
-                    } else if (result != null) {
-                        handleResult(result)
-                    } else {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to create worktree: Unknown error",
-                            "Error Creating Worktree"
-                        )
-                    }
-                }, ModalityState.nonModal())
+            ).thenAccept { result ->
+                handleResult(result)
             }
         }
 
