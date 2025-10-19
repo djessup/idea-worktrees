@@ -1,8 +1,14 @@
 package com.adobe.ideaworktrees.services
 
 import com.adobe.ideaworktrees.AbstractGitWorktreeTestCase
+import com.adobe.ideaworktrees.model.WorktreeInfo
 import com.adobe.ideaworktrees.model.WorktreeOperationResult
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.util.io.FileUtil
 import java.nio.file.Files
+import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -174,6 +180,35 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue("Expected diff details to contain sample.txt, but was: $details", details?.contains("sample.txt") == true)
     }
 
+    fun testCompareWorktreesFailsWhenSourceDirty() {
+        val service = GitWorktreeService.getInstance(project)
+
+        projectPath.resolve("dirty.txt").writeText("main\n")
+        runGit("add", "dirty.txt")
+        runGit("commit", "-m", "Base commit")
+
+        val featurePath = worktreePath("wt-dirty-compare")
+        assertTrue(service.createWorktree(featurePath, "feature/dirty").await() is WorktreeOperationResult.Success)
+
+        featurePath.resolve("dirty.txt").writeText("uncommitted change\n")
+
+        val worktrees = service.listWorktrees().await()
+        val featureWorktree = findWorktreeByBranch(worktrees, "feature/dirty", featurePath)
+        val mainWorktree = findMainWorktree(worktrees)
+
+        val compareResult = service.compareWorktrees(featureWorktree, mainWorktree).await()
+        assertTrue(compareResult is WorktreeOperationResult.Failure)
+        val failure = compareResult as WorktreeOperationResult.Failure
+        assertTrue(
+            "Expected failure message to mention uncommitted changes, but was: ${failure.error}",
+            failure.error.contains("uncommitted", ignoreCase = true)
+        )
+        assertTrue(
+            "Expected failure details to mention the dirty worktree path, but was: ${failure.details}",
+            failure.details?.contains(featurePath.fileName.toString()) == true
+        )
+    }
+
     fun testMergeWorktreeFastForward() {
         val service = GitWorktreeService.getInstance(project)
 
@@ -197,5 +232,203 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
 
         val mergedContent = projectPath.resolve("merge.txt").readText()
         assertTrue("Expected merged content to include feature changes.", mergedContent.contains("feature update"))
+    }
+
+    fun testListWorktreesWhenRepositoryMissingGitDir() {
+        val service = GitWorktreeService.getInstance(project)
+        FileUtil.delete(projectPath.resolve(".git").toFile())
+
+        val listed = service.listWorktrees().await()
+
+        assertTrue("Expected empty list when git directory is missing", listed.isEmpty())
+    }
+
+    fun testCreateWorktreeFailsForMissingBranchWhenNotCreating() {
+        createEmptyCommit("initial")
+
+        val service = GitWorktreeService.getInstance(project)
+        val target = worktreePath("wt-existing-branch")
+
+        val result = service.createWorktree(
+            path = target,
+            branch = "feature/manual",
+            createBranch = false
+        ).await()
+
+        assertTrue(result is WorktreeOperationResult.Failure)
+        assertFalse(target.exists())
+    }
+
+    fun testDeleteWorktreeFailureWhenGitCommandFails() {
+        createEmptyCommit("initial")
+
+        val service = GitWorktreeService.getInstance(project)
+        val nonexistent = worktreePath("wt-missing-delete")
+
+        FileUtil.delete(projectPath.resolve(".git").toFile())
+
+        val result = service.deleteWorktree(nonexistent, force = false).await()
+
+        assertTrue(result is WorktreeOperationResult.Failure)
+        val message = (result as WorktreeOperationResult.Failure).error
+        assertTrue("Failure message should mention delete", message.contains("delete", ignoreCase = true))
+    }
+
+    fun testCreateWorktreeFailsWhenTargetDirectoryAlreadyExists() {
+        createEmptyCommit("initial")
+
+        val service = GitWorktreeService.getInstance(project)
+        val target = worktreePath("wt-existing-dir")
+        Files.createDirectories(target)
+        target.resolve("existing.txt").writeText("occupied")
+
+        val result = service.createWorktree(target, "feature/existing").await()
+
+        assertTrue(result is WorktreeOperationResult.Failure)
+    }
+
+    fun testMergeWorktreeFastForwardFailureOnDivergedHistory() {
+        val service = GitWorktreeService.getInstance(project)
+
+        projectPath.resolve("base.txt").writeText("base\n")
+        runGit("add", "base.txt")
+        runGit("commit", "-m", "Base commit")
+
+        val featurePath = worktreePath("wt-ff-only")
+        assertTrue(service.createWorktree(featurePath, "feature/ff-only").await() is WorktreeOperationResult.Success)
+
+        featurePath.resolve("feature.txt").writeText("feature\n")
+        runGit("add", "feature.txt", workingDir = featurePath)
+        runGit("commit", "-m", "Feature commit", workingDir = featurePath)
+
+        projectPath.resolve("main.txt").writeText("main\n")
+        runGit("add", "main.txt")
+        runGit("commit", "-m", "Main diverge")
+
+        val worktrees = service.listWorktrees().await()
+        val featureWorktree = findWorktreeByBranch(worktrees, "feature/ff-only", featurePath)
+        val mainWorktree = findMainWorktree(worktrees)
+
+        val result = service.mergeWorktree(featureWorktree, mainWorktree, fastForwardOnly = true).await()
+
+        assertTrue(result is WorktreeOperationResult.Failure)
+    }
+
+    fun testCaseInsensitivePathComparisonUsesNormalizedPaths() {
+        val service = GitWorktreeService.getInstance(project)
+        val originalOs = System.getProperty("os.name")
+        System.setProperty("os.name", "Windows 11")
+        try {
+            val method = GitWorktreeService::class.java.getDeclaredMethod(
+                "isSamePath",
+                Path::class.java,
+                Path::class.java
+            )
+            method.isAccessible = true
+
+            val upper = projectPath.resolve("Folder").resolve("File.txt")
+            Files.createDirectories(upper.parent)
+            Files.writeString(upper, "content")
+
+            val lower = projectPath.resolve("folder").resolve("file.txt")
+
+            val result = method.invoke(service, upper, lower) as Boolean
+            assertTrue(result)
+        } finally {
+            System.setProperty("os.name", originalOs)
+        }
+    }
+
+    fun testHasCommitsReturnsFalseForInvalidWorkingDirectory() {
+        val service = GitWorktreeService.getInstance(project)
+        val method = GitWorktreeService::class.java.getDeclaredMethod("hasCommits", Path::class.java)
+        method.isAccessible = true
+
+        val bogus = projectPath.resolve("does-not-exist").resolve("repo")
+
+        val result = method.invoke(service, bogus) as Boolean
+
+        assertFalse(result)
+    }
+
+    fun testDeleteWorktreeFailsWhenProjectPathMissing() {
+        val service = GitWorktreeService.getInstance(project)
+
+        val currentDir = projectPath
+        val backup = currentDir.resolveSibling(currentDir.fileName.toString() + "-backup")
+        Files.move(currentDir, backup)
+        try {
+            val result = service.deleteWorktree(currentDir.resolve("missing"), force = false).await()
+            assertTrue(result is WorktreeOperationResult.Failure)
+        } finally {
+            Files.move(backup, currentDir)
+        }
+    }
+
+    fun testCompareWorktreesFailureForInvalidRange() {
+        val service = GitWorktreeService.getInstance(project)
+        val invalid = WorktreeInfo(projectPath, null, "deadbeef")
+
+        val result = service.compareWorktrees(invalid, invalid).await()
+
+        assertTrue(result is WorktreeOperationResult.Failure)
+    }
+
+    fun testMergeWorktreeFailsWhenTargetPathMissing() {
+        createEmptyCommit("initial")
+
+        val service = GitWorktreeService.getInstance(project)
+        val worktrees = service.listWorktrees().await()
+        val source = findMainWorktree(worktrees)
+        val missingTarget = WorktreeInfo(
+            path = worktreePath("wt-missing-target"),
+            branch = "feature/missing",
+            commit = source.commit,
+            isMain = false
+        )
+
+        val result = service.mergeWorktree(source, missingTarget, fastForwardOnly = false).await()
+
+        assertTrue(result is WorktreeOperationResult.Failure)
+        val message = (result as WorktreeOperationResult.Failure).error
+        assertTrue(message.contains("Target worktree path", ignoreCase = true))
+    }
+
+    fun testIsGitAvailableReturnsTrueOnTestEnvironment() {
+        val service = GitWorktreeService.getInstance(project)
+        val future = CompletableFuture<Boolean>()
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            future.complete(service.isGitAvailable())
+        }
+
+        assertTrue(
+            "Git should be available in test environment",
+            future.get(30, TimeUnit.SECONDS)
+        )
+    }
+
+    fun testForceGitRepositoryOverride() {
+        val service = GitWorktreeService.getInstance(project)
+
+        // Ensure the repository is temporarily unreadable by removing the git directory
+        val gitDir = projectPath.resolve(".git")
+        val backup = gitDir.resolveSibling(gitDir.fileName.toString() + "-backup")
+        if (Files.exists(gitDir)) {
+            Files.move(gitDir, backup)
+        }
+
+        try {
+            service.forceGitRepositoryForTests(false)
+            assertFalse("Without override the repository should not be detected", service.isGitRepository())
+
+            service.forceGitRepositoryForTests(true)
+            assertTrue("Override should force repository detection", service.isGitRepository())
+        } finally {
+            service.forceGitRepositoryForTests(false)
+            if (Files.exists(backup)) {
+                Files.move(backup, gitDir)
+            }
+        }
     }
 }
