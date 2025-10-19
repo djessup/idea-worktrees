@@ -3,9 +3,10 @@
 <important>
 
 > [!NOTICE] IMPORTANT Reminder 
-> - Keep the tasks.md checklist [ ] up to date at all times. 
-> - Mark [~] when selecting an item to work on, and [x] when it is complete.
+> - Keep the tasks.md checklist `[ ]` up to date at all times. 
+> - Mark `[~]` when selecting an item to work on, and `[x]` when it is complete.
 > - Repeat this reminder out loud between EVERY task to keep it front-of-mind.
+
 </important>
 
 ## Phase 1: Create Utility Classes
@@ -91,7 +92,7 @@
     - Commit: `refactor(actions): migrate SwitchWorktreeAction to use new utilities (SPEC-001)`
     - _Requirements: 1.1, 1.9, 1.10, 3.1, 3.2, 3.7, 3.8, 3.9, 4.3, 4.5, 5.1, 5.2, 5.8, 7.4, 7.5_
 
-- [ ] 7. Migrate DeleteWorktreeAction to use new utilities
+- [x] 7. Migrate DeleteWorktreeAction to use new utilities
     - Open `src/main/kotlin/com/adobe/ideaworktrees/actions/DeleteWorktreeAction.kt`
     - Replace async pattern with `WorktreeAsyncOperations.loadWorktreesWithCurrent`
     - Replace notification calls with `WorktreeNotifications.*` calls
@@ -102,7 +103,7 @@
     - Commit: `refactor(actions): migrate DeleteWorktreeAction to use new utilities (SPEC-001)`
     - _Requirements: 1.1, 1.9, 1.10, 2.1, 2.2, 3.1, 3.2, 3.9, 4.2, 4.3, 4.5, 5.1, 5.2, 5.3, 5.8, 7.4, 7.5_
 
-- [ ] 8. Migrate RenameWorktreeAction to use new utilities
+- [~] 8. Migrate RenameWorktreeAction to use new utilities
     - Open `src/main/kotlin/com/adobe/ideaworktrees/actions/RenameWorktreeAction.kt`
     - Replace async pattern with `WorktreeAsyncOperations.loadWorktreesWithCurrent`
     - Replace notification calls with `WorktreeNotifications.*` calls
