@@ -4,11 +4,11 @@ import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
 import au.id.deejay.ideaworktrees.services.WorktreeChangeListener
+import au.id.deejay.ideaworktrees.utils.WorktreeAsyncOperations
+import au.id.deejay.ideaworktrees.utils.WorktreeNotifications
+import au.id.deejay.ideaworktrees.utils.WorktreeResultHandler
 import com.intellij.ide.impl.ProjectUtil
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -145,35 +145,32 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
      * Updates the worktree cache asynchronously on a background thread.
      */
     private fun updateCacheAsync(onComplete: (() -> Unit)? = null) {
-        val application = ApplicationManager.getApplication()
-
         if (!service.isGitRepository()) {
             cachedWorktrees.set(emptyList())
             cachedCurrentWorktree.set(null)
-            application.invokeLater({
+            ApplicationManager.getApplication().invokeLater {
                 update()
                 onComplete?.invoke()
-            }, ModalityState.nonModal())
+            }
             return
         }
 
-        service.listWorktrees()
-            .thenCombine(service.getCurrentWorktree()) { loaded, current -> loaded to current }
-            .whenComplete { result, error ->
-                if (error != null || result == null) {
-                    cachedWorktrees.set(emptyList())
-                    cachedCurrentWorktree.set(null)
-                } else {
-                    val (loadedWorktrees, current) = result
-                    cachedWorktrees.set(loadedWorktrees)
-                    cachedCurrentWorktree.set(current)
-                }
-
-                application.invokeLater({
-                    update()
-                    onComplete?.invoke()
-                }, ModalityState.nonModal())
+        WorktreeAsyncOperations.loadWorktreesWithCurrent(
+            project = project,
+            service = service,
+            onSuccess = { loadedWorktrees, current ->
+                cachedWorktrees.set(loadedWorktrees)
+                cachedCurrentWorktree.set(current)
+                update()
+                onComplete?.invoke()
+            },
+            onError = { _ ->
+                cachedWorktrees.set(emptyList())
+                cachedCurrentWorktree.set(null)
+                update()
+                onComplete?.invoke()
             }
+        )
     }
 
     @TestOnly
@@ -257,13 +254,11 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                 try {
                     ProjectUtil.openOrImport(worktree.path, project, false)
                 } catch (e: Exception) {
-                    NotificationGroupManager.getInstance()
-                        .getNotificationGroup("Git Worktree")
-                        .createNotification(
-                            "Failed to switch to worktree: ${e.message}",
-                            NotificationType.ERROR
-                        )
-                        .notify(project)
+                    WorktreeNotifications.showError(
+                        project = project,
+                        title = "Failed to Switch Worktree",
+                        message = e.message ?: "Unknown error"
+                    )
                 }
             }
         }
@@ -311,32 +306,20 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             val worktreePath = parentPath.resolve(dirName)
 
             val service = GitWorktreeService.getInstance(project)
-            val application = ApplicationManager.getApplication()
             lateinit var submitCreateRequest: (Boolean) -> Unit
 
             fun handleResult(result: WorktreeOperationResult) {
                 when (result) {
                     is WorktreeOperationResult.Success -> {
                         widget.updateCacheAsync()
-                        NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Worktree Created",
-                                result.message,
-                                NotificationType.INFORMATION
-                            )
-                            .notify(project)
-
-                        val openResult = Messages.showYesNoDialog(
-                            project,
-                            "Do you want to open the new worktree in a new window?",
-                            "Open Worktree",
-                            Messages.getQuestionIcon()
+                        WorktreeResultHandler.handle(
+                            project = project,
+                            result = result,
+                            successTitle = "Worktree Created",
+                            errorTitle = "Error Creating Worktree",
+                            promptToOpen = true,
+                            worktreePath = worktreePath
                         )
-
-                        if (openResult == Messages.YES) {
-                            ProjectUtil.openOrImport(worktreePath, project, false)
-                        }
                     }
                     is WorktreeOperationResult.RequiresInitialCommit -> {
                         val response = Messages.showYesNoDialog(
@@ -357,22 +340,12 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                         }
                     }
                     is WorktreeOperationResult.Failure -> {
-                        val errorMsg = result.error
-                        val details = result.details
-                        val fullMessage = if (details != null && details.isNotBlank()) {
-                            "$errorMsg\n\nDetails: $details"
-                        } else {
-                            errorMsg
-                        }
-
-                        NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Error Creating Worktree",
-                                fullMessage,
-                                NotificationType.ERROR
-                            )
-                            .notify(project)
+                        WorktreeResultHandler.handle(
+                            project = project,
+                            result = result,
+                            successTitle = "Worktree Created",
+                            errorTitle = "Error Creating Worktree"
+                        )
                     }
                 }
             }
@@ -383,33 +356,8 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                     branchName,
                     createBranch = true,
                     allowCreateInitialCommit = allowInitialCommit
-                ).whenComplete { result, error ->
-                    application.invokeLater({
-                        if (error != null) {
-                            NotificationGroupManager.getInstance()
-                                .getNotificationGroup("Git Worktree")
-                                .createNotification(
-                                    "Error Creating Worktree",
-                                    error.message ?: "Unknown error",
-                                    NotificationType.ERROR
-                                )
-                                .notify(project)
-                            return@invokeLater
-                        }
-
-                        if (result != null) {
-                            handleResult(result)
-                        } else {
-                            NotificationGroupManager.getInstance()
-                                .getNotificationGroup("Git Worktree")
-                                .createNotification(
-                                    "Error Creating Worktree",
-                                    "Failed to create worktree: Unknown error",
-                                    NotificationType.ERROR
-                                )
-                                .notify(project)
-                        }
-                    }, ModalityState.nonModal())
+                ).thenAccept { result ->
+                    handleResult(result)
                 }
             }
 

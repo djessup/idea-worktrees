@@ -163,7 +163,7 @@
     - Commit: `refactor(ui): migrate ManageWorktreesDialog to use new utilities (SPEC-001)`
     - _Requirements: 1.1, 1.9, 1.10, 3.1, 3.2, 3.9, 4.3, 4.6, 5.1, 5.2, 5.7, 5.8, 7.4, 7.5_
 
-- [~] 13. Migrate WorktreeStatusBarWidget to use new utilities
+- [x] 13. Migrate WorktreeStatusBarWidget to use new utilities
     - Open `src/main/kotlin/com/adobe/ideaworktrees/ui/WorktreeStatusBarWidget.kt`
     - Replace notification calls with `WorktreeNotifications.*` calls
     - Replace `handleResult()` method in embedded CreateWorktreeDialog with `WorktreeResultHandler.handle()`
@@ -176,7 +176,7 @@
 
 ## Phase 4: Cleanup and Validation
 
-- [ ] 14. Verify all duplicated code has been removed
+- [~] 14. Verify all duplicated code has been removed
     - Search for remaining `NotificationGroupManager.getInstance()` calls: `grep -r "NotificationGroupManager.getInstance()" src/main/`
     - Verify only WorktreeNotifications.kt contains this pattern
     - Search for remaining `service.listWorktrees().whenComplete` patterns: `grep -r "listWorktrees().whenComplete" src/main/`
