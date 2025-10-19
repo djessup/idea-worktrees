@@ -141,7 +141,7 @@ Endeavour to address these at the earliest opportunity.
 6. ✅ Folder browser for worktree path selection with auto-suggestion
 7. ✅ Detailed error handling and user feedback
 8. ✅ Table-based manage worktrees dialog with Open/Delete/Refresh
-9. ✅ Keyboard shortcuts for all actions
+9. ✅ ~~Keyboard shortcuts for all actions~~ *Not working on MacOS, other OS's untested*
 
 **Recent Changes:**
 - Added BasePlatformTestCase coverage for status bar widget factory visibility and default hidden state
@@ -177,3 +177,8 @@ _Check the git log to see the most recent changes._
 2. Test all features with real Git repositories and worktrees
 3. Consider adding rename, compare, and merge actions (future enhancements)
 4. Extend automated coverage to action flows (create/switch/compare) once UI test harness is available
+5. Work through GitHub issues sequentially; currently on branch `3-block-renaming-the-main-worktree` with `./gradlew test` covering the regression
+
+**Update 2025-10-19:**
+- Hardened main worktree detection by parsing `.git` gitdir pointers; prevents rename UI from listing the primary checkout and keeps service preflight in sync.
+- Added focussed unit coverage (`WorktreeDetectionLogicTest`) to exercise gitdir parsing for both root and `worktrees/*` scenarios.
