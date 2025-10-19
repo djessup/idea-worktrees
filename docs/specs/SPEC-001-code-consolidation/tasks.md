@@ -103,7 +103,7 @@
     - Commit: `refactor(actions): migrate DeleteWorktreeAction to use new utilities (SPEC-001)`
     - _Requirements: 1.1, 1.9, 1.10, 2.1, 2.2, 3.1, 3.2, 3.9, 4.2, 4.3, 4.5, 5.1, 5.2, 5.3, 5.8, 7.4, 7.5_
 
-- [~] 8. Migrate RenameWorktreeAction to use new utilities
+- [x] 8. Migrate RenameWorktreeAction to use new utilities
     - Open `src/main/kotlin/com/adobe/ideaworktrees/actions/RenameWorktreeAction.kt`
     - Replace async pattern with `WorktreeAsyncOperations.loadWorktreesWithCurrent`
     - Replace notification calls with `WorktreeNotifications.*` calls
@@ -115,7 +115,7 @@
     - Commit: `refactor(actions): migrate RenameWorktreeAction to use new utilities (SPEC-001)`
     - _Requirements: 1.1, 1.9, 1.10, 2.1, 2.2, 3.1, 3.2, 3.9, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.8, 7.4, 7.5_
 
-- [ ] 9. Migrate CompareWorktreeAction to use new utilities
+- [~] 9. Migrate CompareWorktreeAction to use new utilities
     - Open `src/main/kotlin/com/adobe/ideaworktrees/actions/CompareWorktreeAction.kt`
     - Replace async pattern with `WorktreeAsyncOperations.loadWorktrees` (only needs worktrees list)
     - Replace notification calls with `WorktreeNotifications.*` calls
