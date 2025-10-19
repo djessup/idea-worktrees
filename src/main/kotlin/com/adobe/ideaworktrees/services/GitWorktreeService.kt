@@ -545,9 +545,11 @@ class GitWorktreeService(private val project: Project) {
                     i++
                 }
                 
-                val isMainWorktree = isBare || runCatching {
-                    Files.isDirectory(path.resolve(".git"))
-                }.getOrDefault(false)
+                val isMainWorktree = determineIfMainWorktree(
+                    path = path,
+                    isBare = isBare,
+                    defaultIfUnknown = worktrees.isEmpty()
+                )
 
                 if (commit.isNotEmpty()) {
                     worktrees.add(
@@ -624,4 +626,59 @@ class GitWorktreeService(private val project: Project) {
     fun forceGitRepositoryForTests(force: Boolean) {
         treatAsGitRepositoryInTests = force
     }
+}
+
+internal fun determineIfMainWorktree(path: Path, isBare: Boolean, defaultIfUnknown: Boolean = false): Boolean {
+    if (isBare) return true
+
+    val gitLocation = path.resolve(".git")
+
+    if (Files.isDirectory(gitLocation)) {
+        return true
+    }
+
+    if (Files.isSymbolicLink(gitLocation)) {
+        val linkTarget = runCatching { Files.readSymbolicLink(gitLocation) }.getOrNull()
+        val resolved = resolveGitdirCandidate(gitLocation, linkTarget)
+        return resolved?.let { !it.containsWorktreesSegment() } ?: defaultIfUnknown
+    }
+
+    if (Files.isRegularFile(gitLocation)) {
+        val rawContents = runCatching { Files.readString(gitLocation) }.getOrNull()
+            ?: return defaultIfUnknown
+
+        val gitDirLine = rawContents.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.startsWith("gitdir:", ignoreCase = true) }
+            ?: return defaultIfUnknown
+
+        val gitDirValue = gitDirLine.substringAfter(":", "").trim()
+        if (gitDirValue.isEmpty()) {
+            return defaultIfUnknown
+        }
+
+        val resolved = resolveGitdirCandidate(gitLocation, Paths.get(gitDirValue))
+        return resolved?.let { !it.containsWorktreesSegment() } ?: defaultIfUnknown
+    }
+
+    return defaultIfUnknown
+}
+
+private fun resolveGitdirCandidate(gitLocation: Path, candidate: Path?): Path? {
+    candidate ?: return null
+    val normalized = if (candidate.isAbsolute) {
+        candidate
+    } else {
+        gitLocation.parent?.resolve(candidate) ?: return null
+    }
+    return runCatching { normalized.normalize() }.getOrNull()
+}
+
+private fun Path.containsWorktreesSegment(): Boolean {
+    for (segment in this) {
+        if (segment.toString().equals("worktrees", ignoreCase = true)) {
+            return true
+        }
+    }
+    return false
 }
