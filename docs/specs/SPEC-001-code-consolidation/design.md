@@ -136,7 +136,7 @@ object WorktreeResultHandler {
 - `WorktreeNotifications` (for all notifications)
 - `com.intellij.openapi.ui.Messages` (for dialogs)
 - `com.intellij.platform.ProjectUtil` (for opening worktrees)
-- `com.adobe.ideaworktrees.model.WorktreeOperationResult`
+- `au.id.deejay.ideaworktrees.model.WorktreeOperationResult`
 
 **Behavior by Result Type:**
 - **Success**: Show success notification, optionally prompt to open worktree
@@ -179,8 +179,8 @@ object WorktreeAsyncOperations {
 - `WorktreeNotifications` (for default error handling)
 - `com.intellij.openapi.application.ApplicationManager`
 - `com.intellij.openapi.application.ModalityState`
-- `com.adobe.ideaworktrees.services.GitWorktreeService`
-- `com.adobe.ideaworktrees.model.WorktreeInfo`
+- `au.id.deejay.ideaworktrees.services.GitWorktreeService`
+- `au.id.deejay.ideaworktrees.model.WorktreeInfo`
 
 **Threading Model:**
 ```

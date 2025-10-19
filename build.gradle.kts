@@ -5,7 +5,7 @@ plugins {
     id("org.jetbrains.kotlinx.kover") version "0.8.1"
 }
 
-group = "com.adobe"
+group = "au.id.deejay"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -60,8 +60,8 @@ kover {
         filters {
             includes {
                 classes(
-                    "com.adobe.ideaworktrees.services.*",
-                    "com.adobe.ideaworktrees.model.*"
+                    "au.id.deejay.ideaworktrees.services.*",
+                    "au.id.deejay.ideaworktrees.model.*"
                 )
             }
         }

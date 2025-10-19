@@ -46,7 +46,7 @@ Modifications to this file must be made below this line. Do not modify or remove
 - **Target IDEs:** IntelliJ IDEA & RustRover 2025.2.2 running on Java 21.
 - **Primary language:** Kotlin (IntelliJ Platform SDK conventions apply).
 - **Key docs:** `docs/IMPLEMENTATION_PLAN.md`, `docs/TESTING_GUIDELINES.md`, `docs/BUG_REPORTS.md`.
-- **Coverage target:** ≥80% line coverage for `com.adobe.ideaworktrees.services` and `com.adobe.ideaworktrees.model` via Kover.
+- **Coverage target:** ≥80% line coverage for `au.id.deejay.ideaworktrees.services` and `au.id.deejay.ideaworktrees.model` via Kover.
 
 ## Build & Test Checklist
 1. `./gradlew test --console=plain`

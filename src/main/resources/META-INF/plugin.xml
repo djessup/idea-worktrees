@@ -37,11 +37,11 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <!-- Git Worktree Service -->
-        <projectService serviceImplementation="com.adobe.ideaworktrees.services.GitWorktreeService"/>
+        <projectService serviceImplementation="au.id.deejay.ideaworktrees.services.GitWorktreeService"/>
 
         <!-- Status Bar Widget -->
-        <statusBarWidgetFactory id="com.adobe.ideaworktrees.WorktreeStatusBarWidgetFactory"
-                                implementation="com.adobe.ideaworktrees.ui.WorktreeStatusBarWidgetFactory"
+        <statusBarWidgetFactory id="au.id.deejay.ideaworktrees.WorktreeStatusBarWidgetFactory"
+                                implementation="au.id.deejay.ideaworktrees.ui.WorktreeStatusBarWidgetFactory"
                                 order="after vcsWidget"/>
 
         <!-- Notification Group -->
@@ -52,38 +52,38 @@
 
     <!-- Actions -->
     <actions>
-        <group id="com.adobe.ideaworktrees.WorktreeActionGroup"
-               class="com.adobe.ideaworktrees.actions.WorktreeActionGroup"
+        <group id="au.id.deejay.ideaworktrees.WorktreeActionGroup"
+               class="au.id.deejay.ideaworktrees.actions.WorktreeActionGroup"
                text="Git Worktrees"
                description="Git worktree operations"
                popup="true">
 
-            <action id="com.adobe.ideaworktrees.CreateWorktreeAction"
-                    class="com.adobe.ideaworktrees.actions.CreateWorktreeAction"
+            <action id="au.id.deejay.ideaworktrees.CreateWorktreeAction"
+                    class="au.id.deejay.ideaworktrees.actions.CreateWorktreeAction"
                     text="Create New Worktree..."
                     description="Create a new Git worktree"
                     icon="AllIcons.Actions.New">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="C"/>
             </action>
 
-            <action id="com.adobe.ideaworktrees.SwitchWorktreeAction"
-                    class="com.adobe.ideaworktrees.actions.SwitchWorktreeAction"
+            <action id="au.id.deejay.ideaworktrees.SwitchWorktreeAction"
+                    class="au.id.deejay.ideaworktrees.actions.SwitchWorktreeAction"
                     text="Switch Worktree..."
                     description="Switch to a different Git worktree"
                     icon="AllIcons.Actions.Refresh">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="S"/>
             </action>
 
-            <action id="com.adobe.ideaworktrees.DeleteWorktreeAction"
-                    class="com.adobe.ideaworktrees.actions.DeleteWorktreeAction"
+            <action id="au.id.deejay.ideaworktrees.DeleteWorktreeAction"
+                    class="au.id.deejay.ideaworktrees.actions.DeleteWorktreeAction"
                     text="Delete Worktree..."
                     description="Delete a Git worktree"
                     icon="AllIcons.Actions.GC">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="D"/>
             </action>
 
-            <action id="com.adobe.ideaworktrees.RenameWorktreeAction"
-                    class="com.adobe.ideaworktrees.actions.RenameWorktreeAction"
+            <action id="au.id.deejay.ideaworktrees.RenameWorktreeAction"
+                    class="au.id.deejay.ideaworktrees.actions.RenameWorktreeAction"
                     text="Rename Worktree..."
                     description="Rename a Git worktree by moving it to a new path"
                     icon="AllIcons.Actions.Edit">
@@ -92,16 +92,16 @@
 
             <separator/>
 
-            <action id="com.adobe.ideaworktrees.CompareWorktreeAction"
-                    class="com.adobe.ideaworktrees.actions.CompareWorktreeAction"
+            <action id="au.id.deejay.ideaworktrees.CompareWorktreeAction"
+                    class="au.id.deejay.ideaworktrees.actions.CompareWorktreeAction"
                     text="Compare Worktrees..."
                     description="Compare two Git worktrees"
                     icon="AllIcons.Actions.Diff">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt W" second-keystroke="P"/>
             </action>
 
-            <action id="com.adobe.ideaworktrees.MergeWorktreeAction"
-                    class="com.adobe.ideaworktrees.actions.MergeWorktreeAction"
+            <action id="au.id.deejay.ideaworktrees.MergeWorktreeAction"
+                    class="au.id.deejay.ideaworktrees.actions.MergeWorktreeAction"
                     text="Merge Worktree..."
                     description="Merge one Git worktree into another"
                     icon="AllIcons.Actions.Commit">
@@ -110,8 +110,8 @@
 
             <separator/>
 
-            <action id="com.adobe.ideaworktrees.ManageWorktreesAction"
-                    class="com.adobe.ideaworktrees.actions.ManageWorktreesAction"
+            <action id="au.id.deejay.ideaworktrees.ManageWorktreesAction"
+                    class="au.id.deejay.ideaworktrees.actions.ManageWorktreesAction"
                     text="Show All Worktrees"
                     description="Show information about all Git worktrees"
                     icon="AllIcons.Actions.ListFiles">
