@@ -126,11 +126,15 @@ IntelliJ Platform has strict threading requirements. Violating these causes erro
 See docs/IMPLEMENTATION_PLAN.md for detailed task breakdown.
 
 **Testing Strategy:**
-See docs/TESTING_GUIDELINES.md for Jetbrains IDE Plugin testing best practices.
+- Follow the guidelines in docs/TESTING_GUIDELINES.md for Jetbrains IDE Plugin testing best practices.
+- Implement both UI and unit tests to verify functionality.
+- Minimum coverage target is >80%
 
 **Issues/Bugs:**
-See docs/BUG_REPORTS.md for a list of known issues and bugs reported. 
-Endeavour to address these at the earliest opportunity. 
+- Run `gh issues list` (preferred) for a list of current known issues.
+- Report newly discovered issues via `gh issue create`.
+- Endeavour to address issues at the earliest opportunity.
+- Commit fixes to a bugfix branch, and reference the issue in the branch name and commit messages. Open a PR when the branch is ready for review.
 
 **Completed:**
 1. ✅ Core service (GitWorktreeService) with worktree operations
@@ -182,3 +186,4 @@ _Check the git log to see the most recent changes._
 **Update 2025-10-19:**
 - Hardened main worktree detection by parsing `.git` gitdir pointers; prevents rename UI from listing the primary checkout and keeps service preflight in sync.
 - Added focussed unit coverage (`WorktreeDetectionLogicTest`) to exercise gitdir parsing for both root and `worktrees/*` scenarios.
+- Added cleanliness preflight to compare workflow with unit coverage; surface actionable failure when either worktree has uncommitted changes.
