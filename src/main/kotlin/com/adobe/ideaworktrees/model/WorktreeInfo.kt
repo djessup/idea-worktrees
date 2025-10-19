@@ -34,6 +34,8 @@ data class WorktreeInfo(
 
     /**
      * Returns true if this is the main worktree (bare repository).
+     * FIXME: Doesn't seem to work. Manage worktrees shows all worktrees with status "-"
+     *        Should show MAIN on the "parent" worktree.
      */
     val isMain: Boolean
         get() = isBare

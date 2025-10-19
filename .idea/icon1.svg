@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none"
+     xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="Git Worktree • Canonical (80x80)">
+    <defs>
+        <!-- Warm gradient for branches/nodes/hub -->
+        <linearGradient id="gWarm" x1="12" y1="12" x2="68" y2="68" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#FF318C"/>
+            <stop offset="0.35" stop-color="#B250FF"/>
+            <stop offset="1" stop-color="#007FFF"/>
+        </linearGradient>
+        <!-- Cool gradient for pills/tiles -->
+        <linearGradient id="gCool" x1="12" y1="12" x2="68" y2="68" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#3BEA62"/>
+            <stop offset="0.70" stop-color="#3C99CC"/>
+            <stop offset="1" stop-color="#6B57FF"/>
+        </linearGradient>
+    </defs>
+
+    <!-- === Branch system (stroke=5, node r=7, hub r=2.5) === -->
+    <g stroke="url(#gWarm)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <!-- Center spine: top node to just above center pill -->
+        <path d="M40 12 L40 49"/>
+        <!-- Arms: hub(40,28) to side nodes below hub -->
+        <!-- Left arm: control point ~40% along the vector for smooth 'pour' -->
+        <path d="M40 28 Q33.6 32 24 38"/>
+        <!-- Right arm (mirror) -->
+        <path d="M40 28 Q46.4 32 56 38"/>
+    </g>
+
+    <!-- Nodes (outer nodes BELOW hub) -->
+    <circle cx="40" cy="12" r="7" fill="url(#gWarm)"/>
+    <circle cx="24" cy="38" r="7" fill="url(#gWarm)"/>
+    <circle cx="56" cy="38" r="7" fill="url(#gWarm)"/>
+
+    <!-- Hub overlays the join to avoid a pointy junction -->
+    <circle cx="40" cy="28" r="2.5" fill="url(#gWarm)"/>
+
+    <!-- Pills (closer to tiles) -->
+    <rect x="13" y="53" width="14" height="4" rx="2" fill="url(#gCool)"/>
+    <rect x="33" y="53" width="14" height="4" rx="2" fill="url(#gCool)"/>
+    <rect x="53" y="53" width="14" height="4" rx="2" fill="url(#gCool)"/>
+
+    <!-- Tiles (smaller, more spacing, lower) -->
+    <rect x="12" y="60" width="16" height="16" rx="4" fill="url(#gCool)"/>
+    <rect x="32" y="60" width="16" height="16" rx="4" fill="url(#gCool)"/>
+    <rect x="52" y="60" width="16" height="16" rx="4" fill="url(#gCool)"/>
+</svg>
