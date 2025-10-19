@@ -130,6 +130,15 @@ See docs/IMPLEMENTATION_PLAN.md for detailed task breakdown.
 - Implement both UI and unit tests to verify functionality.
 - Minimum coverage target is >80%
 
+## Build & Test Quick Start
+
+- `./gradlew test` – executes the unit and integration tests; required before sending any PR.
+- `./gradlew koverXmlReport` – generates the XML coverage report that our CI consumes.
+
+> **Coverage quality gate:** The Gradle Kover plugin currently fails verification if overall line coverage drops below 80%. Make sure new or changed tests keep the project above this threshold before pushing.
+
+Need deeper guidance on testing workflows? See [docs/TESTING_GUIDELINES.md](docs/TESTING_GUIDELINES.md).
+
 **Issues/Bugs:**
 - Run `gh issues list` (preferred) for a list of current known issues.
 - Report newly discovered issues via `gh issue create`.
