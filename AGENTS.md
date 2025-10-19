@@ -101,6 +101,7 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
 ## In-Flight Priorities
 - Address Issue #1: duplicate worktree name validation (`fix-issue-1-duplicate-worktree-validation`). Ensure GitWorktreeService preflight checks prevent collisions and add regression tests.
 - Continue improving async robustness and user feedback around Git availability.
+- Regression guard in place: `WorktreeResultHandler.handle` now enforces EDT marshalling with coverage via `testHandleCalledFromBackgroundThreadDeliversOnEdt`.
 
 ## Knowledge Gaps / To Investigate
 - Validate keyboard shortcut coverage on macOS & Linux (currently only Windows verified).

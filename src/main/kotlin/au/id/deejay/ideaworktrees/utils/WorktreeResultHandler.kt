@@ -20,20 +20,18 @@ import java.nio.file.Path
  * Usage example:
  * ```kotlin
  * service.createWorktree(path, branch).whenComplete { result, error ->
- *     ApplicationManager.getApplication().invokeLater({
- *         if (error != null) {
- *             WorktreeNotifications.showError(project, "Failed", error.message ?: "Unknown error")
- *             return@invokeLater
- *         }
- *         WorktreeResultHandler.handle(
- *             project = project,
- *             result = result,
- *             successTitle = "Worktree Created",
- *             promptToOpen = true,
- *             worktreePath = path,
- *             onInitialCommitRequired = { handleInitialCommit(it) }
- *         )
- *     }, ModalityState.nonModal())
+ *     if (error != null) {
+ *         WorktreeNotifications.showError(project, "Failed", error.message ?: "Unknown error")
+ *         return@whenComplete
+ *     }
+ *     WorktreeResultHandler.handle(
+ *         project = project,
+ *         result = result,
+ *         successTitle = "Worktree Created",
+ *         promptToOpen = true,
+ *         worktreePath = path,
+ *         onInitialCommitRequired = { handleInitialCommit(it) }
+ *     )
  * }
  * ```
  */
@@ -69,35 +67,48 @@ object WorktreeResultHandler {
             throw IllegalArgumentException("worktreePath must be provided when promptToOpen is true")
         }
 
-        when (result) {
-            is WorktreeOperationResult.Success -> {
-                WorktreeNotifications.showSuccess(project, successTitle, result.message)
+        val application = ApplicationManager.getApplication()
+        if (application.isDisposed) {
+            return
+        }
 
-                if (promptToOpen && worktreePath != null) {
-                    promptToOpenWorktree(project, worktreePath)
+        val deliverResult = Runnable {
+            when (result) {
+                is WorktreeOperationResult.Success -> {
+                    WorktreeNotifications.showSuccess(project, successTitle, result.message)
+
+                    if (promptToOpen && worktreePath != null) {
+                        promptToOpenWorktree(project, worktreePath)
+                    }
                 }
-            }
 
-            is WorktreeOperationResult.Failure -> {
-                WorktreeNotifications.showErrorWithDetails(
-                    project,
-                    errorTitle,
-                    result.error,
-                    result.details
-                )
-            }
-
-            is WorktreeOperationResult.RequiresInitialCommit -> {
-                if (onInitialCommitRequired != null) {
-                    onInitialCommitRequired(result)
-                } else {
-                    WorktreeNotifications.showInfo(
+                is WorktreeOperationResult.Failure -> {
+                    WorktreeNotifications.showErrorWithDetails(
                         project,
-                        "Initial Commit Required",
-                        result.message
+                        errorTitle,
+                        result.error,
+                        result.details
                     )
                 }
+
+                is WorktreeOperationResult.RequiresInitialCommit -> {
+                    if (onInitialCommitRequired != null) {
+                        onInitialCommitRequired(result)
+                    } else {
+                        WorktreeNotifications.showInfo(
+                            project,
+                            "Initial Commit Required",
+                            result.message
+                        )
+                    }
+                }
             }
+        }
+
+        if (application.isDispatchThread) {
+            deliverResult.run()
+        } else {
+            application.invokeLater(deliverResult, ModalityState.nonModal())
         }
     }
 
@@ -114,6 +125,8 @@ object WorktreeResultHandler {
      * @param path The path to the worktree to open
      */
     fun promptToOpenWorktree(project: Project, path: Path) {
+        ApplicationManager.getApplication().assertIsDispatchThread()
+
         val response = Messages.showYesNoDialog(
             project,
             "Would you like to open the new worktree in a new window?",
@@ -134,4 +147,3 @@ object WorktreeResultHandler {
         }
     }
 }
-

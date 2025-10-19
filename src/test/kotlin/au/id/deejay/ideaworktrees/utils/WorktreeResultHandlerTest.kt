@@ -4,11 +4,14 @@ import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.testFramework.PlatformTestUtil
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import java.nio.file.Paths
+import java.util.concurrent.TimeUnit
 
 /**
  * Tests for WorktreeResultHandler utility class.
@@ -20,10 +23,12 @@ import java.nio.file.Paths
 class WorktreeResultHandlerTest : BasePlatformTestCase() {
 
     private val capturedNotifications = mutableListOf<Notification>()
+    private val notificationOnEdtFlags = mutableListOf<Boolean>()
 
     override fun setUp() {
         super.setUp()
         capturedNotifications.clear()
+        notificationOnEdtFlags.clear()
 
         // Subscribe to notifications to capture them for testing
         project.messageBus.connect(testRootDisposable).subscribe(
@@ -31,6 +36,7 @@ class WorktreeResultHandlerTest : BasePlatformTestCase() {
             object : Notifications {
                 override fun notify(notification: Notification) {
                     capturedNotifications.add(notification)
+                    notificationOnEdtFlags.add(ApplicationManager.getApplication().isDispatchThread)
                 }
             }
         )
@@ -233,5 +239,24 @@ class WorktreeResultHandlerTest : BasePlatformTestCase() {
         assertEquals("E1", capturedNotifications[1].title)
         assertEquals("Initial Commit Required", capturedNotifications[2].title)
     }
-}
 
+    @Test
+    fun testHandleCalledFromBackgroundThreadDeliversOnEdt() {
+        val result = WorktreeOperationResult.Success("Handled from background")
+        val future = ApplicationManager.getApplication().executeOnPooledThread<Boolean> {
+            WorktreeResultHandler.handle(
+                project = project,
+                result = result,
+                successTitle = "Background Success"
+            )
+            true
+        }
+
+        PlatformTestUtil.waitForFuture(future, TimeUnit.SECONDS.toMillis(5))
+        PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+
+        assertEquals(1, capturedNotifications.size)
+        assertEquals("Background Success", capturedNotifications[0].title)
+        assertTrue("Notification should be delivered on EDT", notificationOnEdtFlags.all { it })
+    }
+}
