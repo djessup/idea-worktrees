@@ -129,7 +129,7 @@ See docs/IMPLEMENTATION_PLAN.md for detailed task breakdown.
 See docs/TESTING_GUIDELINES.md for Jetbrains IDE Plugin testing best practices.
 
 **Issues/Bugs:**
-See docs/BUG_REPORTS.md for a list of known issues and bugs reported. 
+See docs/ISSUES.md for a list of known issues and bugs reported.
 Endeavour to address these at the earliest opportunity. 
 
 **Completed:**
