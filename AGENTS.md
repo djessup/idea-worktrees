@@ -177,3 +177,4 @@ _Check the git log to see the most recent changes._
 2. Test all features with real Git repositories and worktrees
 3. Consider adding rename, compare, and merge actions (future enhancements)
 4. Extend automated coverage to action flows (create/switch/compare) once UI test harness is available
+5. Work through GitHub issues sequentially; currently on branch `3-block-renaming-the-main-worktree` with `./gradlew test` covering the regression

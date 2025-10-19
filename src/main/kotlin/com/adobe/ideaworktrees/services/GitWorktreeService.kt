@@ -17,6 +17,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.messages.Topic
 import git4idea.repo.GitRepository
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -300,6 +301,16 @@ class GitWorktreeService(private val project: Project) {
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
         return try {
+            val worktrees = listWorktreesInternal()
+            val normalizedOld = normalizePath(oldPath)
+            val targetWorktree = worktrees.firstOrNull { isSamePath(normalizedOld, it.path) }
+            if (targetWorktree?.isMain == true) {
+                return WorktreeOperationResult.Failure(
+                    "Renaming the main worktree is not supported.",
+                    "Git requires the primary worktree to remain at ${targetWorktree.path}."
+                )
+            }
+
             val output = executeGitCommand(
                 projectPath,
                 "worktree", "move",
@@ -534,6 +545,10 @@ class GitWorktreeService(private val project: Project) {
                     i++
                 }
                 
+                val isMainWorktree = isBare || runCatching {
+                    Files.isDirectory(path.resolve(".git"))
+                }.getOrDefault(false)
+
                 if (commit.isNotEmpty()) {
                     worktrees.add(
                         WorktreeInfo(
@@ -542,7 +557,8 @@ class GitWorktreeService(private val project: Project) {
                             commit = commit,
                             isLocked = isLocked,
                             isPrunable = isPrunable,
-                            isBare = isBare
+                            isBare = isBare,
+                            isMain = isMainWorktree
                         )
                     )
                 }
