@@ -55,7 +55,7 @@ Modifications to this file must be made below this line. Do not modify or remove
 
 > **Coverage quality gate:** The Gradle Kover plugin currently fails verification if overall line coverage drops below 80%. Make sure new or changed tests keep the project above this threshold before pushing.
 
-Need deeper guidance on testing workflows? 
+Need deeper guidance on testing workflows?
 
 Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interactions unless an integration test is required. Keep tests deterministic and independent.
 
@@ -97,6 +97,8 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
   - Added 26 comprehensive tests (all passing)
   - Improved code maintainability and consistency across notification handling, result processing, and async operations
   - See `docs/specs/SPEC-001-code-consolidation/` for full details
+
+- Fixed flaky test isolation: cleaned up filesystem artifacts in GitWorktreeServiceTest (case-insensitive path test) and added test .gitignore in fixture to ignore IDE noise. Full suite now passes consistently.
 
 ## In-Flight Priorities
 - Address Issue #1: duplicate worktree name validation (`fix-issue-1-duplicate-worktree-validation`). Ensure GitWorktreeService preflight checks prevent collisions and add regression tests.
