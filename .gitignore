@@ -40,5 +40,9 @@ bin/
 ### VS Code ###
 .vscode/
 
+
+# IntelliJ Platform Gradle plugin local artifacts
+.intellijPlatform/
+
 ### Mac OS ###
 .DS_Store

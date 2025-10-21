@@ -9,6 +9,36 @@ import com.intellij.testFramework.PlatformTestUtil
 
 class ManageWorktreesDialogTest : AbstractGitWorktreeTestCase() {
 
+    fun testDialogLoadsWorktreesAutomaticallyOnOpen() {
+        createEmptyCommit("initial")
+        val service = GitWorktreeService.getInstance(project)
+
+        val featurePath = worktreePath("wt-dialog-auto")
+        service.createWorktree(featurePath, "feature/dialog-auto").await()
+
+        lateinit var dialog: ManageWorktreesDialog
+        ApplicationManager.getApplication().invokeAndWait {
+            dialog = ManageWorktreesDialog(project, service)
+        }
+
+        // The dialog should automatically load worktrees without requiring manual refresh
+        waitForWorktreeCount(dialog, expected = 2)
+
+        val snapshot = dialog.snapshotWorktrees()
+        assertEquals("Dialog should auto-load 2 worktrees on open", 2, snapshot.size)
+        assertTrue("Should contain feature worktree", snapshot.any { normalizePath(it.path) == normalizePath(featurePath) })
+
+        val current = dialog.currentWorktreeForTest()
+        assertNotNull("Current worktree should be identified", current)
+        assertEquals(normalizePath(projectPath), normalizePath(current!!.path))
+
+        val disposable = dialog.disposable
+        ApplicationManager.getApplication().invokeAndWait {
+            dialog.close(DialogWrapper.CANCEL_EXIT_CODE)
+        }
+        Disposer.dispose(disposable)
+    }
+
     fun testDialogLoadsWorktreesAndMarksCurrent() {
         createEmptyCommit("initial")
         val service = GitWorktreeService.getInstance(project)
