@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Font
@@ -55,36 +56,35 @@ class CompareWorktreeAction : AnAction(), DumbAware {
                 val (source, target) = dialog.getSelection()
 
                 service.compareWorktrees(source, target).whenComplete { result, error ->
-                    if (error != null) {
-                        WorktreeNotifications.showError(
-                            project = project,
-                            title = "Compare Worktrees",
-                            message = error.message ?: "Unknown error occurred while comparing worktrees"
-                        )
-                        return@whenComplete
-                    }
-
-                    if (result != null) {
-                        if (result.isSuccess) {
-                            val message = result.successMessage() ?: "Comparison completed."
-                            val details = result.successDetails()
-                            if (!details.isNullOrBlank()) {
-                                DiffResultDialog(project, message, details).show()
+                    com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                        if (error != null) {
+                            WorktreeNotifications.showError(
+                                project = project,
+                                title = "Compare Worktrees",
+                                message = error.message ?: "Unknown error occurred while comparing worktrees"
+                            )
+                        } else if (result != null) {
+                            if (result.isSuccess) {
+                                val message = result.successMessage() ?: "Comparison completed."
+                                val details = result.successDetails()
+                                if (!details.isNullOrBlank()) {
+                                    DiffResultDialog(project, message, details).show()
+                                } else {
+                                    Messages.showInfoMessage(project, message, "Compare Worktrees")
+                                }
                             } else {
-                                Messages.showInfoMessage(project, message, "Compare Worktrees")
+                                val message = result.errorMessage() ?: "Failed to compare worktrees."
+                                val details = result.errorDetails()
+                                val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
+                                Messages.showErrorDialog(project, fullMessage, "Compare Worktrees")
                             }
                         } else {
-                            val message = result.errorMessage() ?: "Failed to compare worktrees."
-                            val details = result.errorDetails()
-                            val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
-                            Messages.showErrorDialog(project, fullMessage, "Compare Worktrees")
+                            WorktreeNotifications.showError(
+                                project = project,
+                                title = "Compare Worktrees",
+                                message = "Worktree comparison failed with an unknown error"
+                            )
                         }
-                    } else {
-                        WorktreeNotifications.showError(
-                            project = project,
-                            title = "Compare Worktrees",
-                            message = "Worktree comparison failed with an unknown error"
-                        )
                     }
                 }
             },

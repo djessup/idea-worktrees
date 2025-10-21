@@ -12,6 +12,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.application.ApplicationManager
 import java.awt.BorderLayout
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
@@ -67,21 +68,23 @@ class CreateWorktreeAction : AnAction(), DumbAware {
                     )
                 }
                 is WorktreeOperationResult.RequiresInitialCommit -> {
-                    val response = Messages.showYesNoDialog(
-                        project,
-                        "The repository has no commits. Create an empty initial commit so the new worktree can be created?",
-                        "Initial Commit Required",
-                        Messages.getQuestionIcon()
-                    )
-
-                    if (response == Messages.YES) {
-                        submitCreateRequest(true)
-                    } else {
-                        Messages.showInfoMessage(
+                    com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                        val response = Messages.showYesNoDialog(
                             project,
-                            "Create an initial commit in the repository and try again.",
-                            "Initial Commit Required"
+                            "The repository has no commits. Create an empty initial commit so the new worktree can be created?",
+                            "Initial Commit Required",
+                            Messages.getQuestionIcon()
                         )
+
+                        if (response == Messages.YES) {
+                            submitCreateRequest(true)
+                        } else {
+                            Messages.showInfoMessage(
+                                project,
+                                "Create an initial commit in the repository and try again.",
+                                "Initial Commit Required"
+                            )
+                        }
                     }
                 }
                 is WorktreeOperationResult.Failure -> {

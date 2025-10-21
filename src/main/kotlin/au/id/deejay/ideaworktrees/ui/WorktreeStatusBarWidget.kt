@@ -322,21 +322,23 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                         )
                     }
                     is WorktreeOperationResult.RequiresInitialCommit -> {
-                        val response = Messages.showYesNoDialog(
-                            project,
-                            "The repository has no commits. Create an empty initial commit so the new worktree can be created?",
-                            "Initial Commit Required",
-                            Messages.getQuestionIcon()
-                        )
-
-                        if (response == Messages.YES) {
-                            submitCreateRequest(true)
-                        } else {
-                            Messages.showInfoMessage(
+                        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                            val response = Messages.showYesNoDialog(
                                 project,
-                                "Create an initial commit in the repository and try again.",
-                                "Initial Commit Required"
+                                "The repository has no commits. Create an empty initial commit so the new worktree can be created?",
+                                "Initial Commit Required",
+                                Messages.getQuestionIcon()
                             )
+
+                            if (response == Messages.YES) {
+                                submitCreateRequest(true)
+                            } else {
+                                Messages.showInfoMessage(
+                                    project,
+                                    "Create an initial commit in the repository and try again.",
+                                    "Initial Commit Required"
+                                )
+                            }
                         }
                     }
                     is WorktreeOperationResult.Failure -> {
