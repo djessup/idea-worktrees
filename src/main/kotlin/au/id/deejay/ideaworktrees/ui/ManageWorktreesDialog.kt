@@ -53,10 +53,10 @@ class ManageWorktreesDialog(
         deleteButton.addActionListener { deleteSelectedWorktree() }
         refreshButton.addActionListener { refreshWorktrees() }
 
-        // Load worktrees
-        refreshWorktrees()
-
         init()
+
+        // Load worktrees after dialog is initialized
+        refreshWorktrees()
     }
 
     private fun createNewWorktree() {
