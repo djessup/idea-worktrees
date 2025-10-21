@@ -38,6 +38,9 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
+            // Clean up any untracked files to prevent test contamination
+            cleanupUntrackedFiles()
+
             ApplicationManager.getApplication().invokeAndWait {
                 ProjectLevelVcsManager.getInstance(project).setDirectoryMappings(emptyList())
             }
@@ -53,6 +56,50 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         runGit("init")
         runGit("config", "user.name", "Test User")
         runGit("config", "user.email", "test@example.com")
+
+        // Ignore IDE/test artifacts so worktrees are clean unless tests explicitly create files
+        val gitignore = projectPath.resolve(".gitignore")
+        val ignoreContents = sequenceOf(
+            "# IntelliJ project files",
+            ".idea/",
+            "*.iml",
+            "out/",
+            "# Gradle/Build output (in case the fixture places anything nearby)",
+            "build/",
+            ".gradle/",
+            "# Misc",
+            "*.log",
+            ".DS_Store"
+        ).joinToString(separator = "\n", postfix = "\n")
+        Files.writeString(gitignore, ignoreContents)
+        // Stage .gitignore but do not commit here (some tests verify behavior with no commits yet)
+        runGit("add", ".gitignore")
+    }
+
+    private fun cleanupUntrackedFiles() {
+        try {
+            // Only clean up if .git directory exists
+            if (!projectPath.resolve(".git").exists()) {
+                return
+            }
+
+            // Get list of untracked files
+            val statusOutput = runGit("status", "--porcelain")
+            val untrackedFiles = statusOutput.lines()
+                .filter { it.startsWith("??") }
+                .map { it.substring(3).trim() }
+                .filter { it.isNotBlank() && it != ".gitignore" }
+
+            // Delete untracked files to prevent contamination
+            for (file in untrackedFiles) {
+                val filePath = projectPath.resolve(file)
+                if (filePath.exists()) {
+                    FileUtil.delete(filePath.toFile())
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore cleanup errors - tearDown should not fail the test
+        }
     }
 
     protected fun createEmptyCommit(message: String) {
