@@ -2,7 +2,9 @@ package au.id.deejay.ideaworktrees.actions
 
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
+import au.id.deejay.ideaworktrees.ui.WorktreeComboBoxRenderer
 import au.id.deejay.ideaworktrees.utils.WorktreeAsyncOperations
+import au.id.deejay.ideaworktrees.utils.WorktreeNotifications
 import au.id.deejay.ideaworktrees.utils.WorktreeResultHandler
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
@@ -61,13 +63,30 @@ class MergeWorktreeAction : AnAction(), DumbAware {
                     return@loadWorktrees
                 }
 
-                service.mergeWorktree(source, target, fastForwardOnly).thenAccept { result ->
-                    WorktreeResultHandler.handle(
-                        project = project,
-                        result = result,
-                        successTitle = "Worktree Merge",
-                        errorTitle = "Merge Worktrees"
-                    )
+                service.mergeWorktree(source, target, fastForwardOnly).whenComplete { result, error ->
+                    if (error != null) {
+                        WorktreeNotifications.showError(
+                            project = project,
+                            title = "Merge Worktrees",
+                            message = error.message ?: "Unknown error occurred while merging worktrees"
+                        )
+                        return@whenComplete
+                    }
+
+                    if (result != null) {
+                        WorktreeResultHandler.handle(
+                            project = project,
+                            result = result,
+                            successTitle = "Worktree Merge",
+                            errorTitle = "Merge Worktrees"
+                        )
+                    } else {
+                        WorktreeNotifications.showError(
+                            project = project,
+                            title = "Merge Worktrees",
+                            message = "Merging worktrees failed with an unknown error"
+                        )
+                    }
                 }
             },
             onError = { error ->

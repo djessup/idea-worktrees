@@ -142,6 +142,17 @@ class ManageWorktreesDialog(
     @TestOnly
     fun currentWorktreeForTest(): WorktreeInfo? = currentWorktree
 
+    @TestOnly
+    fun tableValueForTest(rowIndex: Int, columnIndex: Int): Any? =
+        table.model.getValueAt(rowIndex, columnIndex)
+
+    @TestOnly
+    fun tableColumnClassForTest(columnIndex: Int): Class<*> =
+        table.model.getColumnClass(columnIndex)
+
+    @TestOnly
+    fun tableColumnCountForTest(): Int = table.model.columnCount
+
     private fun openSelectedWorktree() {
         val selectedRow = table.selectedRow
         if (selectedRow < 0 || selectedRow >= worktrees.size) return
@@ -192,15 +203,32 @@ class ManageWorktreesDialog(
             false
         }
 
-        service.deleteWorktree(worktree.path, force).thenAccept { result ->
-            WorktreeResultHandler.handle(
-                project = project,
-                result = result,
-                successTitle = "Worktree Deleted",
-                errorTitle = "Error Deleting Worktree"
-            )
-            if (result.isSuccess) {
-                refreshWorktrees()
+        service.deleteWorktree(worktree.path, force).whenComplete { result, error ->
+            if (error != null) {
+                WorktreeNotifications.showError(
+                    project = project,
+                    title = "Error Deleting Worktree",
+                    message = error.message ?: "Unknown error occurred while deleting worktree"
+                )
+                return@whenComplete
+            }
+
+            if (result != null) {
+                WorktreeResultHandler.handle(
+                    project = project,
+                    result = result,
+                    successTitle = "Worktree Deleted",
+                    errorTitle = "Error Deleting Worktree"
+                )
+                if (result.isSuccess) {
+                    refreshWorktrees()
+                }
+            } else {
+                WorktreeNotifications.showError(
+                    project = project,
+                    title = "Error Deleting Worktree",
+                    message = "Worktree deletion failed with an unknown error"
+                )
             }
         }
     }
@@ -209,7 +237,7 @@ class ManageWorktreesDialog(
      * Table model for displaying worktrees.
      */
     private inner class WorktreeTableModel : AbstractTableModel() {
-        private val columnNames = arrayOf("s", "Name", "Branch", "Path", "Commit", "Status")
+        private val columnNames = arrayOf("Active", "Name", "Branch", "Path", "Commit", "Status")
 
         override fun getRowCount(): Int = worktrees.size
 
@@ -223,14 +251,14 @@ class ManageWorktreesDialog(
             val worktree = worktrees[rowIndex]
             return when (columnIndex) {
                 0 -> worktree.path == currentWorktree?.path
-                0 -> {
+                1 -> {
                     val prefix = if (worktree.path == currentWorktree?.path) "* " else ""
                     "<b>$prefix${worktree.displayName}</b>"
                 }
-                1 -> worktree.branch ?: "(detached)"
-                2 -> worktree.path.toString()
-                3 -> worktree.commit.take(7)
-                4 -> buildString {
+                2 -> worktree.branch ?: "(detached)"
+                3 -> worktree.path.toString()
+                4 -> worktree.commit.take(7)
+                5 -> buildString {
                     if (worktree.isMain) append("MAIN ")
                     if (worktree.isLocked) append("LOCKED ")
                     if (worktree.isPrunable) append("PRUNABLE ")
@@ -239,6 +267,7 @@ class ManageWorktreesDialog(
             }
         }
 
-        override fun getColumnClass(columnIndex: Int): Class<*> = String::class.java
+        override fun getColumnClass(columnIndex: Int): Class<*> =
+            if (columnIndex == 0) java.lang.Boolean::class.java else String::class.java
     }
 }

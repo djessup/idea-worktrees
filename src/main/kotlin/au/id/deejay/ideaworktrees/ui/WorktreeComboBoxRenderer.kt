@@ -1,4 +1,4 @@
-package au.id.deejay.ideaworktrees.actions
+package au.id.deejay.ideaworktrees.ui
 
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import com.intellij.ui.components.JBLabel

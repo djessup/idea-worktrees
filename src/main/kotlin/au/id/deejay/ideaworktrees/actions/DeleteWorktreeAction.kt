@@ -106,13 +106,30 @@ class DeleteWorktreeAction : AnAction(), DumbAware {
         }
 
         service.deleteWorktree(worktree.path, force)
-            .thenAccept { result ->
-                WorktreeResultHandler.handle(
-                    project = project,
-                    result = result,
-                    successTitle = "Worktree Deleted",
-                    errorTitle = "Error Deleting Worktree"
-                )
+            .whenComplete { result, error ->
+                if (error != null) {
+                    WorktreeNotifications.showError(
+                        project = project,
+                        title = "Error Deleting Worktree",
+                        message = error.message ?: "Unknown error occurred while deleting worktree"
+                    )
+                    return@whenComplete
+                }
+
+                if (result != null) {
+                    WorktreeResultHandler.handle(
+                        project = project,
+                        result = result,
+                        successTitle = "Worktree Deleted",
+                        errorTitle = "Error Deleting Worktree"
+                    )
+                } else {
+                    WorktreeNotifications.showError(
+                        project = project,
+                        title = "Error Deleting Worktree",
+                        message = "Worktree deletion failed with an unknown error"
+                    )
+                }
             }
     }
 

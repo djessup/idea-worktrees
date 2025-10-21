@@ -92,13 +92,30 @@ class RenameWorktreeAction : AnAction(), DumbAware {
                     return@loadWorktrees
                 }
 
-                service.moveWorktree(worktree.path, newPath).thenAccept { result ->
-                    WorktreeResultHandler.handle(
-                        project = project,
-                        result = result,
-                        successTitle = "Worktree Renamed",
-                        errorTitle = "Rename Worktree"
-                    )
+                service.moveWorktree(worktree.path, newPath).whenComplete { result, error ->
+                    if (error != null) {
+                        WorktreeNotifications.showError(
+                            project = project,
+                            title = "Rename Worktree",
+                            message = error.message ?: "Unknown error occurred while renaming worktree"
+                        )
+                        return@whenComplete
+                    }
+
+                    if (result != null) {
+                        WorktreeResultHandler.handle(
+                            project = project,
+                            result = result,
+                            successTitle = "Worktree Renamed",
+                            errorTitle = "Rename Worktree"
+                        )
+                    } else {
+                        WorktreeNotifications.showError(
+                            project = project,
+                            title = "Rename Worktree",
+                            message = "Worktree rename failed with an unknown error"
+                        )
+                    }
                 }
             },
             onError = { error ->

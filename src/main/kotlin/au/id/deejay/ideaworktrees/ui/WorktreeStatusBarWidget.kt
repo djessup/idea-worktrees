@@ -356,8 +356,25 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                     branchName,
                     createBranch = true,
                     allowCreateInitialCommit = allowInitialCommit
-                ).thenAccept { result ->
-                    handleResult(result)
+                ).whenComplete { result, error ->
+                    if (error != null) {
+                        WorktreeNotifications.showError(
+                            project = project,
+                            title = "Error Creating Worktree",
+                            message = error.message ?: "Unknown error occurred while creating worktree"
+                        )
+                        return@whenComplete
+                    }
+
+                    if (result != null) {
+                        handleResult(result)
+                    } else {
+                        WorktreeNotifications.showError(
+                            project = project,
+                            title = "Error Creating Worktree",
+                            message = "Worktree creation failed with an unknown error"
+                        )
+                    }
                 }
             }
 

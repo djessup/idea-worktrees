@@ -2,6 +2,7 @@ package au.id.deejay.ideaworktrees.actions
 
 import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
+import au.id.deejay.ideaworktrees.utils.WorktreeNotifications
 import au.id.deejay.ideaworktrees.utils.WorktreeResultHandler
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
@@ -100,8 +101,25 @@ class CreateWorktreeAction : AnAction(), DumbAware {
                 branchName,
                 createBranch = true,
                 allowCreateInitialCommit = allowInitialCommit
-            ).thenAccept { result ->
-                handleResult(result)
+            ).whenComplete { result, error ->
+                if (error != null) {
+                    WorktreeNotifications.showError(
+                        project = project,
+                        title = "Error Creating Worktree",
+                        message = error.message ?: "Unknown error occurred while creating worktree"
+                    )
+                    return@whenComplete
+                }
+
+                if (result != null) {
+                    handleResult(result)
+                } else {
+                    WorktreeNotifications.showError(
+                        project = project,
+                        title = "Error Creating Worktree",
+                        message = "Worktree creation failed with an unknown error"
+                    )
+                }
             }
         }
 
