@@ -1,6 +1,7 @@
 package au.id.deejay.ideaworktrees.ui
 
 import au.id.deejay.ideaworktrees.AbstractGitWorktreeTestCase
+import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.DialogWrapper
@@ -89,6 +90,36 @@ class ManageWorktreesDialogTest : AbstractGitWorktreeTestCase() {
         waitForWorktreeCount(dialog, expected = 1)
 
         assertTrue(dialog.snapshotWorktrees().none { normalizePath(it.path) == normalizePath(featurePath) })
+
+        val disposable = dialog.disposable
+        ApplicationManager.getApplication().invokeAndWait {
+            dialog.close(DialogWrapper.CANCEL_EXIT_CODE)
+        }
+        Disposer.dispose(disposable)
+    }
+
+    fun testDialogCreateWorktreeUpdatesTable() {
+        createEmptyCommit("initial")
+        val service = GitWorktreeService.getInstance(project)
+
+        lateinit var dialog: ManageWorktreesDialog
+        ApplicationManager.getApplication().invokeAndWait {
+            dialog = ManageWorktreesDialog(project, service)
+        }
+        waitForWorktreeCount(dialog, expected = 1)
+
+        val newWorktreePath = worktreePath("wt-create-dialog")
+        val result = dialog.createWorktreeForTest(newWorktreePath, "feature/dialog-create").await()
+        assertTrue(
+            "Expected worktree creation to succeed but was $result",
+            result is WorktreeOperationResult.Success
+        )
+
+        waitForWorktreeCount(dialog, expected = 2)
+        assertTrue(
+            "Should contain newly created worktree",
+            dialog.snapshotWorktrees().any { normalizePath(it.path) == normalizePath(newWorktreePath) }
+        )
 
         val disposable = dialog.disposable
         ApplicationManager.getApplication().invokeAndWait {

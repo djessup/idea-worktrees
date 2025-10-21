@@ -2,7 +2,7 @@ package au.id.deejay.ideaworktrees.actions
 
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
-import com.intellij.ide.impl.ProjectUtil
+import au.id.deejay.ideaworktrees.utils.WorktreeOperations
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -84,6 +84,17 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
     }
 
     private fun switchToWorktree(project: com.intellij.openapi.project.Project, worktree: WorktreeInfo) {
+        // Check if worktree directory exists before prompting
+        val worktreeFile = worktree.path.toFile()
+        if (!worktreeFile.exists()) {
+            Messages.showErrorDialog(
+                project,
+                "Worktree directory does not exist: ${worktree.path}",
+                "Directory Not Found"
+            )
+            return
+        }
+
         // Confirm with user
         val result = Messages.showYesNoDialog(
             project,
@@ -96,19 +107,11 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
             return
         }
 
-        // Open the worktree in a new window
-        val worktreeFile = worktree.path.toFile()
-        if (!worktreeFile.exists()) {
-            Messages.showErrorDialog(
-                project,
-                "Worktree directory does not exist: ${worktree.path}",
-                "Directory Not Found"
-            )
-            return
-        }
-
-        // Close current project and open new one
-        ProjectUtil.openOrImport(worktree.path, project, false)
+        WorktreeOperations.openWorktree(
+            project = project,
+            worktree = worktree,
+            confirmBeforeOpen = false
+        )
     }
 
     override fun update(e: AnActionEvent) {

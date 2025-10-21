@@ -1,25 +1,21 @@
 package au.id.deejay.ideaworktrees.actions
 
-import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
-import com.intellij.ide.impl.ProjectUtil
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
+import au.id.deejay.ideaworktrees.utils.WorktreeOperations
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.DialogWrapper
-import java.awt.BorderLayout
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
 import java.io.File
+import java.nio.file.InvalidPathException
 import java.nio.file.Paths
 import javax.swing.JComponent
 import javax.swing.JLabel
@@ -41,110 +37,28 @@ class CreateWorktreeAction : AnAction(), DumbAware {
         }
 
         val branchName = dialog.getBranchName()
-        val worktreePath = Paths.get(dialog.getWorktreePath())
-
-        // Check if path already exists
-        if (worktreePath.toFile().exists()) {
+        val targetPathText = dialog.getWorktreePath()
+        val worktreePath = try {
+            Paths.get(targetPathText)
+        } catch (e: InvalidPathException) {
             Messages.showErrorDialog(
                 project,
-                "A directory with this name already exists: $worktreePath",
-                "Directory Exists"
+                "Invalid worktree path: ${e.message}",
+                "Invalid Path"
             )
             return
         }
 
         val service = GitWorktreeService.getInstance(project)
 
-        val application = ApplicationManager.getApplication()
-        lateinit var submitCreateRequest: (Boolean) -> Unit
-
-        fun handleResult(result: WorktreeOperationResult) {
-            when (result) {
-                is WorktreeOperationResult.Success -> {
-                    NotificationGroupManager.getInstance()
-                        .getNotificationGroup("Git Worktree")
-                        .createNotification(
-                            "Worktree Created",
-                            result.message,
-                            NotificationType.INFORMATION
-                        )
-                        .notify(project)
-
-                    val openWorktree = Messages.showYesNoDialog(
-                        project,
-                        "Would you like to open the new worktree in a new window?",
-                        "Open Worktree",
-                        Messages.getQuestionIcon()
-                    )
-
-                    if (openWorktree == Messages.YES) {
-                        ProjectUtil.openOrImport(worktreePath, project, false)
-                    }
-                }
-                is WorktreeOperationResult.RequiresInitialCommit -> {
-                    val response = Messages.showYesNoDialog(
-                        project,
-                        "The repository has no commits. Create an empty initial commit so the new worktree can be created?",
-                        "Initial Commit Required",
-                        Messages.getQuestionIcon()
-                    )
-
-                    if (response == Messages.YES) {
-                        submitCreateRequest(true)
-                    } else {
-                        Messages.showInfoMessage(
-                            project,
-                            "Create an initial commit in the repository and try again.",
-                            "Initial Commit Required"
-                        )
-                    }
-                }
-                is WorktreeOperationResult.Failure -> {
-                    val errorMsg = result.error
-                    val details = result.details
-                    val fullMessage = if (details != null) {
-                        "$errorMsg\n\nDetails: $details"
-                    } else {
-                        errorMsg
-                    }
-
-                    Messages.showErrorDialog(
-                        project,
-                        fullMessage,
-                        "Error Creating Worktree"
-                    )
-                }
-            }
-        }
-
-        submitCreateRequest = { allowInitialCommit: Boolean ->
-            service.createWorktree(
-                worktreePath,
-                branchName,
-                createBranch = true,
-                allowCreateInitialCommit = allowInitialCommit
-            ).whenComplete { result, error ->
-                application.invokeLater({
-                    if (error != null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to create worktree: ${error.message ?: "Unknown error"}",
-                            "Error Creating Worktree"
-                        )
-                    } else if (result != null) {
-                        handleResult(result)
-                    } else {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to create worktree: Unknown error",
-                            "Error Creating Worktree"
-                        )
-                    }
-                }, ModalityState.nonModal())
-            }
-        }
-
-        submitCreateRequest(false)
+        WorktreeOperations.createWorktree(
+            project = project,
+            service = service,
+            worktreePath = worktreePath,
+            branchName = branchName,
+            promptToOpen = true,
+            modalityState = ModalityState.nonModal()
+        )
     }
 
     override fun update(e: AnActionEvent) {
@@ -166,7 +80,10 @@ class CreateWorktreeAction : AnAction(), DumbAware {
 /**
  * Dialog for creating a new worktree with branch name and path selection.
  */
-private class CreateWorktreeDialog(private val project: com.intellij.openapi.project.Project) : DialogWrapper(project) {
+internal class CreateWorktreeDialog(
+    private val project: com.intellij.openapi.project.Project
+) : DialogWrapper(project) {
+
     private val branchNameField = JTextField(20)
     private val pathField = TextFieldWithBrowseButton()
 
@@ -174,13 +91,14 @@ private class CreateWorktreeDialog(private val project: com.intellij.openapi.pro
         title = "Create New Worktree"
 
         // Set up path browser
-        val descriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
-        descriptor.title = "Select Worktree Location"
-        descriptor.description = "Choose the parent directory for the new worktree"
+        val descriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor().apply {
+            title = "Select Worktree Location"
+            description = "Choose the parent directory for the new worktree"
+        }
         @Suppress("DEPRECATION")
         pathField.addBrowseFolderListener(
-            "Select Worktree Location",
-            "Choose the parent directory for the new worktree",
+            descriptor.title,
+            descriptor.description,
             project,
             descriptor
         )
@@ -204,25 +122,28 @@ private class CreateWorktreeDialog(private val project: com.intellij.openapi.pro
 
     private fun updateDefaultPath() {
         val branchName = branchNameField.text.trim()
-        if (branchName.isNotEmpty()) {
-                val projectPath = project.basePath?.let { File(it) }
-                val defaultParent = projectPath?.parentFile
-                if (defaultParent != null) {
-                    val projectPathAsPath = project.basePath?.let { java.nio.file.Paths.get(it) }
-                    val suggestedName = au.id.deejay.ideaworktrees.ui.WorktreeStatusBarWidget.suggestDirectoryName(projectPathAsPath, branchName)
-                    pathField.text = File(defaultParent, suggestedName).absolutePath
-                }
+        if (branchName.isEmpty()) {
+            return
         }
+
+        val projectPath = project.basePath?.let { File(it) }
+        val defaultParent = projectPath?.parentFile ?: return
+        val projectPathAsPath = project.basePath?.let { java.nio.file.Paths.get(it) }
+        val suggestedName = au.id.deejay.ideaworktrees.ui.WorktreeStatusBarWidget
+            .suggestDirectoryName(projectPathAsPath, branchName)
+
+        pathField.text = File(defaultParent, suggestedName).absolutePath
     }
 
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridBagLayout())
-        val gbc = GridBagConstraints()
+        val gbc = GridBagConstraints().apply {
+            insets = Insets(5, 5, 5, 5)
+        }
 
         gbc.gridx = 0
         gbc.gridy = 0
         gbc.anchor = GridBagConstraints.WEST
-        gbc.insets = Insets(5, 5, 5, 5)
         panel.add(JLabel("Branch name:"), gbc)
 
         gbc.gridx = 1
@@ -277,6 +198,7 @@ private class CreateWorktreeDialog(private val project: com.intellij.openapi.pro
     }
 
     fun getBranchName(): String = branchNameField.text.trim()
+
     fun getWorktreePath(): String = pathField.text.trim()
 
     companion object {

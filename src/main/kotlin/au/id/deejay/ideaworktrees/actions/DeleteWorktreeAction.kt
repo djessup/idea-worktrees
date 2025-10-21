@@ -2,6 +2,7 @@ package au.id.deejay.ideaworktrees.actions
 
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
+import au.id.deejay.ideaworktrees.utils.WorktreeOperations
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -87,81 +88,12 @@ class DeleteWorktreeAction : AnAction(), DumbAware {
         service: GitWorktreeService,
         worktree: WorktreeInfo
     ) {
-        // Confirm deletion (on EDT)
-        val result = Messages.showYesNoDialog(
-            project,
-            "Are you sure you want to delete the worktree at:\n${worktree.path}\n\n" +
-                    "This will remove the worktree directory and all its contents.",
-            "Confirm Delete Worktree",
-            Messages.getWarningIcon()
+        WorktreeOperations.deleteWorktree(
+            project = project,
+            service = service,
+            worktree = worktree,
+            modalityState = ModalityState.nonModal()
         )
-
-        if (result != Messages.YES) {
-            return
-        }
-
-        // Check if worktree has uncommitted changes
-        val force = if (worktree.isLocked) {
-            val forceResult = Messages.showYesNoDialog(
-                project,
-                "The worktree is locked. Force deletion?",
-                "Worktree Locked",
-                Messages.getWarningIcon()
-            )
-            forceResult == Messages.YES
-        } else {
-            false
-        }
-
-        val application = ApplicationManager.getApplication()
-
-        service.deleteWorktree(worktree.path, force)
-            .whenComplete { result, error ->
-                application.invokeLater({
-                    if (error != null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to delete worktree: ${error.message ?: "Unknown error"}",
-                            "Error Deleting Worktree"
-                        )
-                        return@invokeLater
-                    }
-
-                    if (result == null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to delete worktree: Unknown error",
-                            "Error Deleting Worktree"
-                        )
-                        return@invokeLater
-                    }
-
-                    if (result.isSuccess) {
-                        NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Worktree Deleted",
-                                result.successMessage() ?: "Deleted worktree successfully",
-                                NotificationType.INFORMATION
-                            )
-                            .notify(project)
-                    } else {
-                        val errorMsg = result.errorMessage() ?: "Failed to delete worktree"
-                        val details = result.errorDetails()
-                        val fullMessage = if (details != null) {
-                            "$errorMsg\n\nDetails: $details"
-                        } else {
-                            errorMsg
-                        }
-
-                        Messages.showErrorDialog(
-                            project,
-                            fullMessage,
-                            "Error Deleting Worktree"
-                        )
-                    }
-                }, ModalityState.nonModal())
-            }
     }
 
     override fun update(e: AnActionEvent) {

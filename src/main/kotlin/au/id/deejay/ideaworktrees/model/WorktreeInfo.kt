@@ -29,10 +29,28 @@ data class WorktreeInfo(
         get() = path.fileName?.toString() ?: path.toString()
 
     /**
-     * Returns a display name for the worktree, preferring the branch name if available.
+     * Returns a display name for the worktree, preferring the bare branch name if available.
+     * Strips common Git reference prefixes (refs/heads/, refs/remotes/, refs/tags/) from branch names.
+     * Falls back to the shortened commit hash (first 7 characters) when no branch is available.
      */
     val displayName: String
-        get() = branch ?: commit.take(7)
+        get() = branch?.let { stripGitRefPrefix(it) } ?: commit.take(7)
+
+    /**
+     * Strips common Git reference prefixes from a branch name.
+     * - refs/heads/ → removed (e.g., "refs/heads/master" → "master")
+     * - refs/remotes/ → removed (e.g., "refs/remotes/origin/feature" → "origin/feature")
+     * - refs/tags/ → removed (e.g., "refs/tags/v1.0" → "v1.0")
+     * - Otherwise → returned as-is
+     */
+    private fun stripGitRefPrefix(ref: String): String {
+        return when {
+            ref.startsWith("refs/heads/") -> ref.removePrefix("refs/heads/")
+            ref.startsWith("refs/remotes/") -> ref.removePrefix("refs/remotes/")
+            ref.startsWith("refs/tags/") -> ref.removePrefix("refs/tags/")
+            else -> ref
+        }
+    }
 
     override fun toString(): String {
         return "WorktreeInfo(path=$path, branch=$branch, commit=${commit.take(7)}, isMain=$isMain, isLocked=$isLocked, isPrunable=$isPrunable)"

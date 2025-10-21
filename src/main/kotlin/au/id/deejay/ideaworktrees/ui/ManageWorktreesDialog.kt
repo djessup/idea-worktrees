@@ -1,8 +1,10 @@
 package au.id.deejay.ideaworktrees.ui
 
+import au.id.deejay.ideaworktrees.actions.CreateWorktreeDialog
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
+import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
-import com.intellij.ide.impl.ProjectUtil
+import au.id.deejay.ideaworktrees.utils.WorktreeOperations
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
@@ -14,6 +16,10 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.util.concurrent.CompletableFuture
 import javax.swing.*
 import javax.swing.table.AbstractTableModel
 import org.jetbrains.annotations.TestOnly
@@ -32,7 +38,7 @@ class ManageWorktreesDialog(
     private val table = JBTable(tableModel)
 
     // Buttons
-    private val createButton = JButton("Create") // TODO: Wire up create button
+    private val createButton = JButton("Create")
     private val openButton = JButton("Open")
     private val deleteButton = JButton("Delete")
     private val refreshButton = JButton("Refresh")
@@ -60,7 +66,37 @@ class ManageWorktreesDialog(
     }
 
     private fun createNewWorktree() {
-        TODO("Not yet implemented")
+        val createDialog = CreateWorktreeDialog(project)
+        if (!createDialog.showAndGet()) {
+            return
+        }
+
+        val branchName = createDialog.getBranchName()
+        val targetPathText = createDialog.getWorktreePath()
+        val worktreePath = try {
+            Paths.get(targetPathText)
+        } catch (e: InvalidPathException) {
+            Messages.showErrorDialog(
+                project,
+                "Invalid worktree path: ${e.message}",
+                "Invalid Path"
+            )
+            return
+        }
+
+        val modality = ModalityState.stateForComponent(table)
+
+        WorktreeOperations.createWorktree(
+            project = project,
+            service = service,
+            worktreePath = worktreePath,
+            branchName = branchName,
+            promptToOpen = true,
+            modalityState = modality,
+            callbacks = WorktreeOperations.CreateWorktreeCallbacks(
+                onSuccess = { refreshWorktrees() }
+            )
+        )
     }
 
     override fun createCenterPanel(): JComponent {
@@ -75,6 +111,8 @@ class ManageWorktreesDialog(
         val buttonPanel = JPanel()
         buttonPanel.layout = BoxLayout(buttonPanel, BoxLayout.X_AXIS)
         buttonPanel.add(Box.createHorizontalGlue())
+        buttonPanel.add(createButton)
+        buttonPanel.add(Box.createHorizontalStrut(5))
         buttonPanel.add(openButton)
         buttonPanel.add(Box.createHorizontalStrut(5))
         buttonPanel.add(deleteButton)
@@ -130,9 +168,11 @@ class ManageWorktreesDialog(
     }
 
     private fun updateButtonStates() {
+        val isGitRepo = service.isGitRepository()
         val selectedRow = table.selectedRow
         val hasSelection = selectedRow >= 0
 
+        createButton.isEnabled = isGitRepo
         openButton.isEnabled = hasSelection
 
         // Can't delete current worktree or main worktree
@@ -148,6 +188,30 @@ class ManageWorktreesDialog(
     }
 
     @TestOnly
+    fun createWorktreeForTest(
+        path: Path,
+        branch: String,
+        allowInitialCommit: Boolean = true
+    ): CompletableFuture<WorktreeOperationResult> {
+        val modality = ModalityState.stateForComponent(table)
+        return service.createWorktree(
+            path,
+            branch,
+            createBranch = true,
+            allowCreateInitialCommit = allowInitialCommit
+        ).also { future ->
+            future.whenComplete { result, error ->
+                if (error == null && result is WorktreeOperationResult.Success) {
+                    ApplicationManager.getApplication().invokeLater(
+                        { refreshWorktrees() },
+                        modality
+                    )
+                }
+            }
+        }
+    }
+
+    @TestOnly
     fun snapshotWorktrees(): List<WorktreeInfo> = synchronized(worktrees) { worktrees.toList() }
 
     @TestOnly
@@ -159,18 +223,11 @@ class ManageWorktreesDialog(
 
         val worktree = worktrees[selectedRow]
 
-        // TODO: Offer to open in the same window, new window, or cancel
-        val result = Messages.showYesNoCancelDialog(
-            project,
-            "Open worktree '${worktree.displayName}' in a new window?",
-            "Open Worktree",
-            Messages.getQuestionIcon(),
-
+        WorktreeOperations.openWorktree(
+            project = project,
+            worktree = worktree,
+            confirmBeforeOpen = true
         )
-
-        if (result == Messages.YES) {
-            ProjectUtil.openOrImport(worktree.path, project, false)
-        }
     }
 
     private fun deleteSelectedWorktree() {
@@ -178,90 +235,24 @@ class ManageWorktreesDialog(
         if (selectedRow < 0 || selectedRow >= worktrees.size) return
 
         val worktree = worktrees[selectedRow]
-
-        val result = Messages.showYesNoDialog(
-            project,
-            "Are you sure you want to delete the worktree at:\n${worktree.path}\n\n" +
-                "This will remove the worktree directory and all its contents.\n\n" +
-                "<b>Uncommitted changes will be lost!</b> " +
-                "This operation cannot be undone.",
-            "Confirm Delete Worktree",
-            Messages.getWarningIcon()
-        )
-
-        if (result != Messages.YES) return
-
-        val force = if (worktree.isLocked) {
-            val forceResult = Messages.showYesNoDialog(
-                project,
-                "The worktree is locked. Force deletion?",
-                "Worktree Locked",
-                Messages.getWarningIcon()
-            )
-            forceResult == Messages.YES
-        } else {
-            false
-        }
-
-        val application = ApplicationManager.getApplication()
         val modality = ModalityState.stateForComponent(table)
 
-        service.deleteWorktree(worktree.path, force)
-            .whenComplete { result, error ->
-                application.invokeLater({
-                    if (error != null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to delete worktree: ${error.message ?: "Unknown error"}",
-                            "Error Deleting Worktree"
-                        )
-                        return@invokeLater
-                    }
-
-                    if (result == null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to delete worktree: Unknown error",
-                            "Error Deleting Worktree"
-                        )
-                        return@invokeLater
-                    }
-
-                    if (result.isSuccess) {
-                        NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Git Worktree")
-                            .createNotification(
-                                "Worktree Deleted",
-                                result.successMessage() ?: "Deleted worktree successfully",
-                                NotificationType.INFORMATION
-                            )
-                            .notify(project)
-
-                        refreshWorktrees()
-                    } else {
-                        val errorMsg = result.errorMessage() ?: "Failed to delete worktree"
-                        val details = result.errorDetails()
-                        val fullMessage = if (details != null) {
-                            "$errorMsg\n\nDetails: $details"
-                        } else {
-                            errorMsg
-                        }
-
-                        Messages.showErrorDialog(
-                            project,
-                            fullMessage,
-                            "Error Deleting Worktree"
-                        )
-                    }
-                }, modality)
-            }
+        WorktreeOperations.deleteWorktree(
+            project = project,
+            service = service,
+            worktree = worktree,
+            modalityState = modality,
+            callbacks = WorktreeOperations.DeleteWorktreeCallbacks(
+                onSuccess = { refreshWorktrees() }
+            )
+        )
     }
 
     /**
      * Table model for displaying worktrees.
      */
     private inner class WorktreeTableModel : AbstractTableModel() {
-        private val columnNames = arrayOf("s", "Name", "Branch", "Path", "Commit", "Status")
+        private val columnNames = arrayOf("Current", "Name", "Branch", "Path", "Commit", "Status")
 
         override fun getRowCount(): Int = worktrees.size
 
@@ -274,15 +265,12 @@ class ManageWorktreesDialog(
 
             val worktree = worktrees[rowIndex]
             return when (columnIndex) {
-                0 -> worktree.path == currentWorktree?.path
-                0 -> {
-                    val prefix = if (worktree.path == currentWorktree?.path) "* " else ""
-                    "<b>$prefix${worktree.displayName}</b>"
-                }
-                1 -> worktree.branch ?: "(detached)"
-                2 -> worktree.path.toString()
-                3 -> worktree.commit.take(7)
-                4 -> buildString {
+                0 -> if (worktree.path == currentWorktree?.path) "→" else ""
+                1-> worktree.displayName
+                2 -> worktree.branch ?: "(detached)"
+                3 -> worktree.path.toString()
+                4 -> worktree.commit.take(7)
+                5 -> buildString {
                     if (worktree.isMain) append("MAIN ")
                     if (worktree.isLocked) append("LOCKED ")
                     if (worktree.isPrunable) append("PRUNABLE ")
