@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CompareWorktreeAction.kt$CompareWorktreeAction$override fun actionPerformed(e: AnActionEvent)</ID>
+    <ID>CyclomaticComplexMethod:ManageWorktreesDialog.kt$ManageWorktreesDialog$private fun createNewWorktree()</ID>
+    <ID>CyclomaticComplexMethod:MergeWorktreeAction.kt$MergeWorktreeAction$override fun actionPerformed(e: AnActionEvent)</ID>
+    <ID>CyclomaticComplexMethod:RenameWorktreeAction.kt$RenameWorktreeAction$override fun actionPerformed(e: AnActionEvent)</ID>
+    <ID>CyclomaticComplexMethod:WorktreeStatusBarWidget.kt$WorktreeStatusBarWidget.WorktreePopupStep$private fun createNewWorktree()</ID>
+    <ID>ForbiddenComment:ManageWorktreesDialog.kt$ManageWorktreesDialog$// TODO: Offer to open in the same window, new window, or cancel</ID>
+    <ID>ForbiddenComment:WorktreeStatusBarWidget.kt$WorktreeStatusBarWidget.WorktreePopupStep$// TODO: Add icons for worktrees and actions</ID>
+    <ID>LongMethod:CompareWorktreesDialogTest.kt$CompareWorktreesDialogTest$fun testValidationRequiresDistinctSelections()</ID>
+    <ID>LongMethod:DeleteWorktreeAction.kt$DeleteWorktreeAction$private fun deleteWorktree( project: com.intellij.openapi.project.Project, service: GitWorktreeService, worktree: WorktreeInfo )</ID>
+    <ID>LongMethod:GitWorktreeService.kt$GitWorktreeService$private fun compareWorktreesInternal( source: WorktreeInfo, target: WorktreeInfo ): WorktreeOperationResult</ID>
+    <ID>LongMethod:GitWorktreeService.kt$GitWorktreeService$private fun createWorktreeInternal( path: Path, branch: String, createBranch: Boolean = true, allowCreateInitialCommit: Boolean = false, initialCommitMessage: String = DEFAULT_INITIAL_COMMIT_MESSAGE ): WorktreeOperationResult</ID>
+    <ID>LongMethod:ManageWorktreesDialog.kt$ManageWorktreesDialog$private fun deleteSelectedWorktree()</ID>
+    <ID>LongMethod:MergeWorktreeAction.kt$MergeWorktreeAction$override fun actionPerformed(e: AnActionEvent)</ID>
+    <ID>LongMethod:RenameWorktreeAction.kt$RenameWorktreeAction$override fun actionPerformed(e: AnActionEvent)</ID>
+    <ID>LongMethod:WorktreeStatusBarWidget.kt$WorktreeStatusBarWidget.WorktreePopupStep$private fun createNewWorktree()</ID>
+    <ID>NestedBlockDepth:GitWorktreeService.kt$GitWorktreeService$private fun parseWorktreeList(output: String): List&lt;WorktreeInfo></ID>
+    <ID>ReturnCount:AbstractGitWorktreeTestCase.kt$AbstractGitWorktreeTestCase$private fun selectGitExecutable(): String</ID>
+    <ID>ReturnCount:CompareWorktreeAction.kt$CompareWorktreesDialog$override fun doValidate(): ValidationInfo?</ID>
+    <ID>ReturnCount:CreateWorktreeAction.kt$CreateWorktreeAction$override fun actionPerformed(e: AnActionEvent)</ID>
+    <ID>ReturnCount:CreateWorktreeAction.kt$CreateWorktreeDialog$override fun doValidate(): com.intellij.openapi.ui.ValidationInfo?</ID>
+    <ID>ReturnCount:GitWorktreeService.kt$GitWorktreeService$fun isGitRepository(): Boolean</ID>
+    <ID>ReturnCount:GitWorktreeService.kt$GitWorktreeService$private fun compareWorktreesInternal( source: WorktreeInfo, target: WorktreeInfo ): WorktreeOperationResult</ID>
+    <ID>ReturnCount:GitWorktreeService.kt$GitWorktreeService$private fun createWorktreeInternal( path: Path, branch: String, createBranch: Boolean = true, allowCreateInitialCommit: Boolean = false, initialCommitMessage: String = DEFAULT_INITIAL_COMMIT_MESSAGE ): WorktreeOperationResult</ID>
+    <ID>ReturnCount:GitWorktreeService.kt$GitWorktreeService$private fun deleteWorktreeInternal(path: Path, force: Boolean): WorktreeOperationResult</ID>
+    <ID>ReturnCount:GitWorktreeService.kt$GitWorktreeService$private fun listWorktreesInternal(): List&lt;WorktreeInfo></ID>
+    <ID>ReturnCount:GitWorktreeService.kt$GitWorktreeService$private fun mergeWorktreeInternal( source: WorktreeInfo, target: WorktreeInfo, fastForwardOnly: Boolean ): WorktreeOperationResult</ID>
+    <ID>ReturnCount:GitWorktreeService.kt$GitWorktreeService$private fun moveWorktreeInternal(oldPath: Path, newPath: Path): WorktreeOperationResult</ID>
+    <ID>ReturnCount:GitWorktreeService.kt$internal fun determineIfMainWorktree(path: Path, isBare: Boolean, defaultIfUnknown: Boolean = false): Boolean</ID>
+    <ID>ReturnCount:GitWorktreeService.kt$private fun resolveGitdirCandidate(gitLocation: Path, candidate: Path?): Path?</ID>
+    <ID>ReturnCount:ManageWorktreesDialog.kt$ManageWorktreesDialog$private fun createNewWorktree()</ID>
+    <ID>ReturnCount:MergeWorktreeAction.kt$MergeWorktreesDialog$override fun doValidate(): ValidationInfo?</ID>
+    <ID>ReturnCount:WorktreeStatusBarWidget.kt$WorktreeStatusBarWidget.WorktreePopupStep$private fun createNewWorktree()</ID>
+    <ID>SpreadOperator:GitWorktreeService.kt$GitWorktreeService$(projectPath, *args.toTypedArray())</ID>
+    <ID>SpreadOperator:GitWorktreeService.kt$GitWorktreeService$(targetPath, *args.toTypedArray())</ID>
+    <ID>SwallowedException:AbstractGitWorktreeTestCase.kt$AbstractGitWorktreeTestCase$e: Exception</ID>
+    <ID>SwallowedException:GitWorktreeService.kt$GitWorktreeService$e: Exception</ID>
+    <ID>SwallowedException:WorktreeDetectionLogicTest.kt$WorktreeDetectionLogicTest$ex: UnsupportedOperationException</ID>
+    <ID>TooGenericExceptionCaught:GitWorktreeService.kt$GitWorktreeService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitWorktreeService.kt$GitWorktreeService$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:WorktreeStatusBarWidget.kt$WorktreeStatusBarWidget.WorktreePopupStep$e: Exception</ID>
+    <ID>TooManyFunctions:GitWorktreeService.kt$GitWorktreeService</ID>
+    <ID>UseCheckOrError:AbstractGitWorktreeTestCase.kt$AbstractGitWorktreeTestCase$throw IllegalStateException("Main worktree not found among ${worktrees.map { it.path }}")</ID>
+  </CurrentIssues>
+</SmellBaseline>

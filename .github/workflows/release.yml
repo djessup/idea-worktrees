@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Run tests and coverage
+        run: ./gradlew test koverXmlReport --stacktrace --console=plain
+        env:
+          CI: true
+
+      - name: Build plugin distribution
+        run: ./gradlew buildPlugin --stacktrace --console=plain
+        env:
+          CI: true
+
+      - name: Capture plugin artifact
+        id: artifact
+        run: |
+          set -eo pipefail
+          artifact=$(find build/distributions -maxdepth 1 -name '*.zip' -print | head -n 1)
+          if [ -z "$artifact" ]; then
+            echo "::error::No plugin distribution found in build/distributions"
+            exit 1
+          fi
+          echo "path=$artifact" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$artifact")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ steps.artifact.outputs.path }}
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.artifact.outputs.path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

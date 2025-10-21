@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "2.1.0"
     id("org.jetbrains.intellij.platform") version "2.7.1"
     id("org.jetbrains.kotlinx.kover") version "0.8.1"
+    id("io.gitlab.arturbosch.detekt") version "1.23.6"
 }
 
 group = "au.id.deejay"
@@ -24,6 +25,9 @@ dependencies {
 
         // Add Git plugin for VCS integration
         bundledPlugin("Git4Idea")
+
+        // Plugin Verifier
+        pluginVerifier()
     }
 
     testImplementation("junit:junit:4.13.2")
@@ -35,9 +39,17 @@ intellijPlatform {
             sinceBuild = "251"
         }
 
-        changeNotes = """
+        changeNotes =
+            """
             Initial version
-        """.trimIndent()
+            """.trimIndent()
+    }
+
+    pluginVerification {
+        ides {
+            // Verify against the IDE version we're building for
+            ide("IC", "2025.1.4.1")
+        }
     }
 }
 
@@ -61,10 +73,22 @@ kover {
             includes {
                 classes(
                     "au.id.deejay.ideaworktrees.services.*",
-                    "au.id.deejay.ideaworktrees.model.*"
+                    "au.id.deejay.ideaworktrees.model.*",
                 )
             }
         }
     }
 }
 
+detekt {
+    toolVersion = "1.23.6"
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom(files("$projectDir/config/detekt/detekt.yml"))
+    baseline = file("$projectDir/config/detekt/baseline.xml")
+}
+
+tasks.named("check") {
+    dependsOn("verifyPlugin")
+    dependsOn("detekt")
+}

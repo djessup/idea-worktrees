@@ -8,7 +8,7 @@
     <name>Git Worktree Manager</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.adobe.com">Adobe</vendor>
+    <vendor url="https://github.com/djessup/idea-worktrees">David Jessup</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
@@ -37,12 +37,11 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <!-- Git Worktree Service -->
-        <projectService serviceImplementation="au.id.deejay.ideaworktrees.services.GitWorktreeService"/>
 
         <!-- Status Bar Widget -->
         <statusBarWidgetFactory id="au.id.deejay.ideaworktrees.WorktreeStatusBarWidgetFactory"
                                 implementation="au.id.deejay.ideaworktrees.ui.WorktreeStatusBarWidgetFactory"
-                                order="after vcsWidget"/>
+                                order="after git"/>
 
         <!-- Notification Group -->
         <notificationGroup id="Git Worktree"
