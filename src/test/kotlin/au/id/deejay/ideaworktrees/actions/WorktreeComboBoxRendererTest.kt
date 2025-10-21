@@ -1,6 +1,7 @@
 package au.id.deejay.ideaworktrees.actions
 
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
+import au.id.deejay.ideaworktrees.ui.WorktreeComboBoxRenderer
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.JBLabel
 import java.nio.file.Paths

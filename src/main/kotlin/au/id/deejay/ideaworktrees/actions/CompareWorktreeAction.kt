@@ -2,16 +2,18 @@ package au.id.deejay.ideaworktrees.actions
 
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
+import au.id.deejay.ideaworktrees.ui.WorktreeComboBoxRenderer
+import au.id.deejay.ideaworktrees.utils.WorktreeAsyncOperations
+import au.id.deejay.ideaworktrees.utils.WorktreeNotifications
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Font
@@ -32,47 +34,36 @@ class CompareWorktreeAction : AnAction(), DumbAware {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
-        val application = ApplicationManager.getApplication()
 
-        service.listWorktrees()
-            .whenComplete { worktrees, error ->
-                application.invokeLater({
-                    if (error != null || worktrees == null) {
-                        Messages.showErrorDialog(
-                            project,
-                            "Failed to list worktrees: ${error?.message ?: "Unknown error"}",
-                            "Compare Worktrees"
-                        )
-                        return@invokeLater
-                    }
+        WorktreeAsyncOperations.loadWorktrees(
+            project = project,
+            service = service,
+            onSuccess = { worktrees ->
+                if (worktrees.size < 2) {
+                    Messages.showInfoMessage(
+                        project,
+                        "You need at least two worktrees to run a comparison.",
+                        "Compare Worktrees"
+                    )
+                    return@loadWorktrees
+                }
 
-                    if (worktrees.size < 2) {
-                        Messages.showInfoMessage(
-                            project,
-                            "You need at least two worktrees to run a comparison.",
-                            "Compare Worktrees"
-                        )
-                        return@invokeLater
-                    }
+                val dialog = CompareWorktreesDialog(project, worktrees)
+                if (!dialog.showAndGet()) {
+                    return@loadWorktrees
+                }
 
-                    val dialog = CompareWorktreesDialog(project, worktrees)
-                    if (!dialog.showAndGet()) {
-                        return@invokeLater
-                    }
+                val (source, target) = dialog.getSelection()
 
-                    val (source, target) = dialog.getSelection()
-
-                    service.compareWorktrees(source, target).whenComplete { result, compareError ->
-                        application.invokeLater({
-                            if (compareError != null || result == null) {
-                                Messages.showErrorDialog(
-                                    project,
-                                    "Failed to compare worktrees: ${compareError?.message ?: "Unknown error"}",
-                                    "Compare Worktrees"
-                                )
-                                return@invokeLater
-                            }
-
+                service.compareWorktrees(source, target).whenComplete { result, error ->
+                    com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                        if (error != null) {
+                            WorktreeNotifications.showError(
+                                project = project,
+                                title = "Compare Worktrees",
+                                message = error.message ?: "Unknown error occurred while comparing worktrees"
+                            )
+                        } else if (result != null) {
                             if (result.isSuccess) {
                                 val message = result.successMessage() ?: "Comparison completed."
                                 val details = result.successDetails()
@@ -87,10 +78,24 @@ class CompareWorktreeAction : AnAction(), DumbAware {
                                 val fullMessage = if (details != null) "$message\n\nDetails: $details" else message
                                 Messages.showErrorDialog(project, fullMessage, "Compare Worktrees")
                             }
-                        }, ModalityState.nonModal())
+                        } else {
+                            WorktreeNotifications.showError(
+                                project = project,
+                                title = "Compare Worktrees",
+                                message = "Worktree comparison failed with an unknown error"
+                            )
+                        }
                     }
-                }, ModalityState.nonModal())
+                }
+            },
+            onError = { error ->
+                Messages.showErrorDialog(
+                    project,
+                    "Failed to list worktrees: ${error.message ?: "Unknown error"}",
+                    "Compare Worktrees"
+                )
             }
+        )
     }
 
 private class DiffResultDialog(

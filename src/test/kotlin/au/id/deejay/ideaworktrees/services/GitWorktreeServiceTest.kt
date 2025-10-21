@@ -335,7 +335,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
             val result = method.invoke(service, upper, lower) as Boolean
             assertTrue(result)
         } finally {
+            // Restore OS name and clean up created test files to keep repository clean between tests
             System.setProperty("os.name", originalOs)
+            runCatching { FileUtil.delete(projectPath.resolve("Folder").toFile()) }
         }
     }
 

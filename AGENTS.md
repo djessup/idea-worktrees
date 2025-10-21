@@ -55,7 +55,7 @@ Modifications to this file must be made below this line. Do not modify or remove
 
 > **Coverage quality gate:** The Gradle Kover plugin currently fails verification if overall line coverage drops below 80%. Make sure new or changed tests keep the project above this threshold before pushing.
 
-Need deeper guidance on testing workflows? 
+Need deeper guidance on testing workflows?
 
 Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interactions unless an integration test is required. Keep tests deterministic and independent.
 
@@ -72,6 +72,10 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
 3. Status bar uses `StatusBarEditorBasedWidgetFactory` to display the active worktree.
 4. Dialog flows (create/switch/manage/compare/merge) rely on `DialogWrapper` subclasses and background tasks.
 5. Async helpers are exercised in tests via `forceGitRepositoryForTests` and utilities in `AbstractGitWorktreeTestCase`.
+6. **Utility classes** (SPEC-001 refactoring):
+   - `WorktreeNotifications`: Centralized notification handling (success, error, warning, info)
+   - `WorktreeResultHandler`: Standardized result handling for WorktreeOperationResult
+   - `WorktreeAsyncOperations`: Reusable async patterns for loading worktrees with EDT marshalling
 
 ## Workflow Expectations
 - Follow Conventional Commits; commit early and often.
@@ -87,9 +91,19 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
 - Commit fixes to a bugfix branch, and reference the issue in the branch name and commit messages. Open a PR when the branch is ready for review.
 
 
+## Recent Completions
+- **SPEC-001 Code Consolidation** (completed): Eliminated ~250+ lines of duplicated code by creating three utility classes:
+  - Migrated 7 action classes and 2 UI components to use new utilities
+  - Added 26 comprehensive tests (all passing)
+  - Improved code maintainability and consistency across notification handling, result processing, and async operations
+  - See `docs/specs/SPEC-001-code-consolidation/` for full details
+
+- Fixed flaky test isolation: cleaned up filesystem artifacts in GitWorktreeServiceTest (case-insensitive path test) and added test .gitignore in fixture to ignore IDE noise. Full suite now passes consistently.
+
 ## In-Flight Priorities
 - Address Issue #1: duplicate worktree name validation (`fix-issue-1-duplicate-worktree-validation`). Ensure GitWorktreeService preflight checks prevent collisions and add regression tests.
 - Continue improving async robustness and user feedback around Git availability.
+- Regression guard in place: `WorktreeResultHandler.handle` now enforces EDT marshalling with coverage via `testHandleCalledFromBackgroundThreadDeliversOnEdt`.
 
 ## Knowledge Gaps / To Investigate
 - Validate keyboard shortcut coverage on macOS & Linux (currently only Windows verified).
