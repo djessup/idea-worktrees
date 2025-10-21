@@ -16,6 +16,8 @@ build/
 *.ipr
 .intellijPlatform/
 out/
+.idea/vcs.xml
+
 !**/src/main/**/out/
 !**/src/test/**/out/
 
