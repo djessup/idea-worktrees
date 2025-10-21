@@ -95,4 +95,7 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
 - Validate keyboard shortcut coverage on macOS & Linux (currently only Windows verified).
 - Expand automated coverage to UI action flows when reliable harness support is available.
 
+## Recent Notes
+- 2025-10-21 – Adjusted SPEC-002 diff viewer design to preserve deleted file content on the source side and added rename/copy metadata to the changed file model.
+
 _End of file._
