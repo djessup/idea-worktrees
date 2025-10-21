@@ -1,10 +1,16 @@
+You are an AI code agent, and an expert IntelliJ plugin developer. You care deeply about the user experience and
+creating frictionless workflows for developers. Your task is to implement the plugin as described below.
+
+You may make any reasonable assumptions about unspecified behaviour when implementing the plugin. The user will review
+the plugin behaviour and provide feedback, if necessary, after the initial implementation is complete.
+
 This project is an IDE plugin for Jetbrains IDEs that provides support for working with multiple worktrees in a
 single project.
 
 The initial state is the default Plugin Dev Kit project created by the IntelliJ Platform Plugin template. You may modify
 the project as needed to implement the desired functionality.
 
-Plugin/project goals:
+**Plugin/project requirements:**
 - Supports IntelliJ IDEA 2025.2.2 (252.26199.169) and RustRover 2025.2.2 (252.26199.159), running under Java 21.
   Support for older IDE versions and Java versions is acceptable, but not required.
 - Plugin provides ergonomic support for working with multiple Git worktrees for a single project:
@@ -15,12 +21,21 @@ Plugin/project goals:
   - Comparing a worktree to another worktree or to the main worktree
   - Merging a worktree into another worktree or into the main worktree
 - Plugin displays the current worktree in the status bar.
+- Plugin meets criteria for [Dynamic Plugins](https://plugins.jetbrains.com/docs/intellij/dynamic-plugins.html) support
+  - Must not use require-restart="true" in <idea-plugin> tag
+  - Avoid deprecated components: ApplicationComponent, ProjectComponent, and ModuleComponent
+  - Action groups must have IDs assigned
+  - Use only dynamic extension points (or mark custom ones as dynamic="true")
+  - No service overrides (overrides="true")
+  - Declarative listener registration via plugin.xml or properly disposed programmatic registration
+  - Proper resource cleanup via Disposable interface
+  - No problematic static state: No static mutable collections, caches, or references to project/module objects
+  - No PSI element storage in static fields or long-lived caches
+  - No FileType/Language as map keys (use FileTypeExtensionPoint instead)
+  - Background threading: Use ActionUpdateThread.BGT for action updates
+  - No EDT blocking: Run I/O operations on background threads
 
-You are an AI code agent, and an expert IntelliJ plugin developer. You care deeply about the user experience and
-creating frictionless workflows for developers. Your task is to implement the plugin as described above.
-
-You may make any reasonable assumptions about unspecified behaviour when implementing the plugin. The user will review
-the plugin behaviour and provide feedback, if necessary, after the initial implementation is complete.
+For more information on how to develop an IntelliJ plugin, refer to the documentation at: https://plugins.jetbrains.com/docs/intellij/welcome.html
 
 You may run any non-destructive commands within the project workspace to develop and test the plugin. Write tests,
 preferably first (e.g. TDD/BDD), to verify the plugin behaviour. You have latitude to act within the project workspace,
@@ -28,9 +43,6 @@ but be mindful not to cause damage to any files or other resources outside the p
 
 You should commit your work at frequently increments as you progress. This provides a history of your work and
 the ability to revert to a previous state if needed. Use Conventional Commits for your commit messages.
-
-For more information on how to develop an IntelliJ plugin, refer to the documentation at:
-https://plugins.jetbrains.com/docs/intellij/welcome.html
 
 You should update AGENTS.md (this file) regularly to record important decisions and learnings that support your short-term
 priorities. Your memory (context) gets reset often, and this file will be provided after each reset as a way to help you
@@ -86,7 +98,6 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
 - Endeavour to address issues at the earliest opportunity.
 - Commit fixes to a bugfix branch, and reference the issue in the branch name and commit messages. Open a PR when the branch is ready for review.
 
-
 ## In-Flight Priorities
 - Address Issue #1: duplicate worktree name validation (`fix-issue-1-duplicate-worktree-validation`). Ensure GitWorktreeService preflight checks prevent collisions and add regression tests.
 - Continue improving async robustness and user feedback around Git availability.
@@ -97,5 +108,8 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
 
 ## Recent Notes
 - 2025-10-21 – Adjusted SPEC-002 diff viewer design to preserve deleted file content on the source side and added rename/copy metadata to the changed file model.
+- 2025-10-22 – Wired ManageWorktreesDialog "Create" button through shared flow; added regression coverage via ManageWorktreesDialogTest.testDialogCreateWorktreeUpdatesTable.
+- 2025-10-22 – Added GitHub Actions CI (tests + Kover) and release workflows (buildPlugin, artifact upload, tag-based release publish).
+- 2025-10-22 – Introduced Detekt linting (Gradle plugin + GitHub Actions workflow) with project baseline.
 
 _End of file._
