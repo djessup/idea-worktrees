@@ -1,6 +1,5 @@
 package au.id.deejay.ideaworktrees.ui
 
-import au.id.deejay.ideaworktrees.actions.CreateWorktreeDialog
 import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
@@ -11,12 +10,10 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -38,7 +35,7 @@ class ManageWorktreesDialog(
     private val table = JBTable(tableModel)
 
     // Buttons
-    private val createButton = JButton("Create")
+    private val createButton = JButton("New")
     private val openButton = JButton("Open")
     private val deleteButton = JButton("Delete")
     private val refreshButton = JButton("Refresh")
@@ -66,31 +63,15 @@ class ManageWorktreesDialog(
     }
 
     private fun createNewWorktree() {
-        val createDialog = CreateWorktreeDialog(project)
-        if (!createDialog.showAndGet()) {
-            return
-        }
-
-        val branchName = createDialog.getBranchName()
-        val targetPathText = createDialog.getWorktreePath()
-        val worktreePath = try {
-            Paths.get(targetPathText)
-        } catch (e: InvalidPathException) {
-            Messages.showErrorDialog(
-                project,
-                "Invalid worktree path: ${e.message}",
-                "Invalid Path"
-            )
-            return
-        }
-
         val modality = ModalityState.stateForComponent(table)
+
+        // Get parent directory from current project
+        val parentPath = project.basePath?.let { Paths.get(it).parent }
 
         WorktreeOperations.createWorktree(
             project = project,
             service = service,
-            worktreePath = worktreePath,
-            branchName = branchName,
+            parentPath = parentPath,
             promptToOpen = true,
             modalityState = modality,
             callbacks = WorktreeOperations.CreateWorktreeCallbacks(

@@ -34,6 +34,8 @@ dependencies {
 }
 
 intellijPlatform {
+    buildSearchableOptions = false // Allow dynamic reload
+
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "251"

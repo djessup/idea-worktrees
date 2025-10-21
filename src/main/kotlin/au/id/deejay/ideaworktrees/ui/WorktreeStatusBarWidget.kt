@@ -33,16 +33,6 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
     companion object {
         const val ID = "au.id.deejay.ideaworktrees.WorktreeStatusBarWidget"
         private const val EMPTY_TEXT = "No Worktree"
-        // Visible for tests: compute suggested directory name for new worktrees
-        @JvmStatic
-        fun suggestDirectoryName(projectPath: java.nio.file.Path?, branchName: String): String {
-            val projectFolderName = projectPath?.fileName?.toString() ?: "project"
-            // Replace any characters that are unsafe in file names (including slashes) with hyphens
-            // Preserve underscores, dots, and hyphens as they are valid in directory names
-            val sanitizedBranch = branchName.replace(Regex("[^A-Za-z0-9._-]+"), "-")
-                .trim { it == '-' || it == '.' }
-            return "$projectFolderName-$sanitizedBranch"
-        }
     }
 
     private val service: GitWorktreeService = GitWorktreeService.getInstance(project)
@@ -271,27 +261,7 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
         }
 
         private fun createNewWorktree() {
-            // Get user input on EDT
-            val branchName = Messages.showInputDialog(
-                project,
-                "Enter the branch name for the new worktree:",
-                "Create New Worktree",
-                Messages.getQuestionIcon()
-            ) ?: return
-
             val projectPath = Paths.get(project.basePath ?: return)
-            // Suggest directory name using the project folder name to keep naming consistent
-            val defaultDirName = suggestDirectoryName(projectPath, branchName)
-
-            val dirName = Messages.showInputDialog(
-                project,
-                "Enter the directory name for the new worktree:",
-                "Create New Worktree",
-                Messages.getQuestionIcon(),
-                defaultDirName,
-                null
-            ) ?: return
-
             val parentPath = projectPath.parent
             if (parentPath == null) {
                 Messages.showErrorDialog(
@@ -301,15 +271,13 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
                 )
                 return
             }
-            val worktreePath = parentPath.resolve(dirName)
 
             val service = GitWorktreeService.getInstance(project)
 
             WorktreeOperations.createWorktree(
                 project = project,
                 service = service,
-                worktreePath = worktreePath,
-                branchName = branchName,
+                parentPath = parentPath,
                 promptToOpen = true,
                 modalityState = ModalityState.nonModal(),
                 callbacks = WorktreeOperations.CreateWorktreeCallbacks(

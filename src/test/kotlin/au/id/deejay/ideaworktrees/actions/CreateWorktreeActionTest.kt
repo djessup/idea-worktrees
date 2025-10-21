@@ -123,13 +123,16 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
     // Helper methods to access private dialog fields via reflection
 
     private fun createDialog(): Any {
-        // Use reflection to create the private CreateWorktreeDialog class
-        val dialogClass = Class.forName("au.id.deejay.ideaworktrees.actions.CreateWorktreeDialog")
+        // Use reflection to create the internal CreateWorktreeDialog class from WorktreeOperations
+        val dialogClass = Class.forName("au.id.deejay.ideaworktrees.utils.CreateWorktreeDialog")
         val constructor = dialogClass.getDeclaredConstructor(
-            com.intellij.openapi.project.Project::class.java
+            com.intellij.openapi.project.Project::class.java,
+            java.nio.file.Path::class.java,
+            String::class.java,
+            String::class.java
         )
         constructor.isAccessible = true
-        return constructor.newInstance(project)
+        return constructor.newInstance(project, null, "", "")
     }
 
     private fun invokeDoValidate(dialog: Any): ValidationInfo? {
