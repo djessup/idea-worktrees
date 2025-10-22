@@ -488,17 +488,10 @@ internal class CreateWorktreeDialog(
         title = "Create New Worktree"
 
         // Set up path browser
-        val descriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor().apply {
+        pathField.addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFolderDescriptor().apply {
             title = "Select Worktree Location"
             description = "Choose the parent directory for the new worktree"
-        }
-        @Suppress("DEPRECATION", "removal")
-        pathField.addBrowseFolderListener(
-            descriptor.title,
-            descriptor.description,
-            project,
-            descriptor
-        )
+        });
 
         // Set default values
         branchNameField.text = defaultBranchName
