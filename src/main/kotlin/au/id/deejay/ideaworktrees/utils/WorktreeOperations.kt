@@ -14,9 +14,9 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.util.ui.JBUI
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import java.awt.Insets
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -198,7 +198,7 @@ object WorktreeOperations {
                     NotificationGroupManager.getInstance()
                         .getNotificationGroup("Git Worktree")
                         .createNotification(
-                            "Worktree Created",
+                            "Worktree created",
                             result.message,
                             NotificationType.INFORMATION
                         )
@@ -491,7 +491,7 @@ internal class CreateWorktreeDialog(
         pathField.addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFolderDescriptor().apply {
             title = "Select Worktree Location"
             description = "Choose the parent directory for the new worktree"
-        });
+        })
 
         // Set default values
         branchNameField.text = defaultBranchName
@@ -545,7 +545,7 @@ internal class CreateWorktreeDialog(
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridBagLayout())
         val gbc = GridBagConstraints().apply {
-            insets = Insets(5, 5, 5, 5)
+            insets = JBUI.insets(5)
         }
 
         gbc.gridx = 0
