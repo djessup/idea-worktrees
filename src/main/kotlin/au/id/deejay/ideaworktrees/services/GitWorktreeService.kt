@@ -38,6 +38,9 @@ class GitWorktreeService(private val project: Project) {
         val WORKTREE_TOPIC: Topic<WorktreeChangeListener> =
             Topic.create("GitWorktreeChanges", WorktreeChangeListener::class.java)
 
+        /**
+         * Returns the project-scoped [GitWorktreeService] instance.
+         */
         fun getInstance(project: Project): GitWorktreeService = project.service()
     }
 
@@ -52,10 +55,16 @@ class GitWorktreeService(private val project: Project) {
         return runAsync("listWorktrees") { listWorktreesInternal() }
     }
 
+    /**
+     * Synchronously queries Git for the current set of worktrees.
+     *
+     * @return List of [WorktreeInfo] parsed from `git worktree list --porcelain`, or empty when unavailable.
+     */
     private fun listWorktreesInternal(): List<WorktreeInfo> {
         val projectPath = getProjectPath() ?: return emptyList()
 
         return try {
+            // Capture the raw porcelain representation so we can parse worktree metadata.
             val output = executeGitCommand(projectPath, "worktree", "list", "--porcelain")
             if (output.exitCode != 0) {
                 LOG.warn("Failed to list worktrees: ${output.stderr}")
@@ -77,11 +86,17 @@ class GitWorktreeService(private val project: Project) {
         return runAsync("getCurrentWorktree") { getCurrentWorktreeInternal() }
     }
 
+    /**
+     * Resolves the current worktree by matching the project path against the known worktree roots.
+     *
+     * @return The [WorktreeInfo] whose path contains the project base directory, or null if none match.
+     */
     private fun getCurrentWorktreeInternal(): WorktreeInfo? {
         val projectPath = getProjectPath() ?: return null
         val worktrees = listWorktreesInternal()
 
         return worktrees.find { worktree ->
+            // The active worktree is the one that encloses the project's base path.
             projectPath.startsWith(worktree.path)
         }
     }
@@ -112,6 +127,15 @@ class GitWorktreeService(private val project: Project) {
         }
     }
 
+    /**
+     * Performs the synchronous worktree creation logic shared by async callers.
+     *
+     * @param path Destination directory for the worktree.
+     * @param branch Branch to check out in the new worktree.
+     * @param createBranch Whether the branch should be created when absent.
+     * @param allowCreateInitialCommit Whether to bootstrap a repository without commits.
+     * @param initialCommitMessage Message used when seeding an initial commit.
+     */
     private fun createWorktreeInternal(
         path: Path,
         branch: String,
@@ -123,6 +147,7 @@ class GitWorktreeService(private val project: Project) {
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
         return try {
+            // Gather existing worktrees early to enforce both path and name uniqueness.
             val worktrees = listWorktreesInternal()
             val normalizedTarget = normalizePath(path)
 
@@ -209,12 +234,26 @@ class GitWorktreeService(private val project: Project) {
         }
     }
 
+    /**
+     * Normalizes a path for comparison by resolving symlinks where possible.
+     *
+     * @param path Candidate path to normalize.
+     * @return Real path when accessible, otherwise an absolute normalized variant.
+     */
     private fun normalizePath(path: Path): Path {
         return runCatching { path.toRealPath() }.getOrElse {
+            // Fallback to a best-effort normalization when we lack permissions to resolve symlinks.
             path.toAbsolutePath().normalize()
         }
     }
 
+    /**
+     * Determines whether two paths reference the same location, honoring filesystem case sensitivity.
+     *
+     * @param target The canonical target path.
+     * @param other The comparison path.
+     * @return True when both paths represent the same file system location.
+     */
     private fun isSamePath(target: Path, other: Path): Boolean {
         val normalizedOther = normalizePath(other)
         return if (isFileSystemCaseInsensitive()) {
@@ -224,6 +263,9 @@ class GitWorktreeService(private val project: Project) {
         }
     }
 
+    /**
+     * Detects whether the underlying operating system performs case-insensitive path comparisons.
+     */
     private fun isFileSystemCaseInsensitive(): Boolean {
         val osName = System.getProperty("os.name").lowercase()
         return osName.contains("win") || osName.contains("mac") || osName.contains("darwin")
@@ -252,6 +294,12 @@ class GitWorktreeService(private val project: Project) {
         return runAsync("deleteWorktree") { deleteWorktreeInternal(path, force) }
     }
 
+    /**
+     * Performs the synchronous deletion of a worktree directory.
+     *
+     * @param path Worktree location to delete.
+     * @param force Whether to pass `--force` to Git to remove dirty worktrees.
+     */
     private fun deleteWorktreeInternal(path: Path, force: Boolean): WorktreeOperationResult {
         val projectPath = getProjectPath()
             ?: return WorktreeOperationResult.Failure("Project path not found")
@@ -296,11 +344,18 @@ class GitWorktreeService(private val project: Project) {
         return runAsync("moveWorktree") { moveWorktreeInternal(oldPath, newPath) }
     }
 
+    /**
+     * Performs the synchronous move/rename of a worktree on disk.
+     *
+     * @param oldPath Source location of the worktree.
+     * @param newPath Destination location requested by the caller.
+     */
     private fun moveWorktreeInternal(oldPath: Path, newPath: Path): WorktreeOperationResult {
         val projectPath = getProjectPath()
             ?: return WorktreeOperationResult.Failure("Project path not found")
 
         return try {
+            // Snapshot the current worktrees so we can confirm the target represents a safe candidate.
             val worktrees = listWorktreesInternal()
             val normalizedOld = normalizePath(oldPath)
             val targetWorktree = worktrees.firstOrNull { isSamePath(normalizedOld, it.path) }
@@ -350,6 +405,13 @@ class GitWorktreeService(private val project: Project) {
         return runAsync("compareWorktrees") { compareWorktreesInternal(source, target) }
     }
 
+    /**
+     * Produces a diff summary between two worktrees after validating their cleanliness.
+     *
+     * @param source Worktree providing changes.
+     * @param target Worktree to diff against.
+     * @return [WorktreeOperationResult] describing the comparison outcome.
+     */
     private fun compareWorktreesInternal(
         source: WorktreeInfo,
         target: WorktreeInfo
@@ -361,6 +423,7 @@ class GitWorktreeService(private val project: Project) {
             val dirtyWorktrees = mutableListOf<WorktreeInfo>()
             val inspected = listOf(source, target)
             for (worktree in inspected) {
+                // Validate that both worktrees are present on disk before running Git commands.
                 if (!worktree.path.exists()) {
                     return WorktreeOperationResult.Failure(
                         "Failed to compare worktrees",
@@ -383,6 +446,7 @@ class GitWorktreeService(private val project: Project) {
                 }
 
                 if (statusOutput.stdout.isNotBlank()) {
+                    // Track worktrees with uncommitted changes so we can instruct the user to clean them up.
                     dirtyWorktrees.add(worktree)
                 }
             }
@@ -397,6 +461,7 @@ class GitWorktreeService(private val project: Project) {
                 )
             }
 
+            // Build a commit range using the worktree references to compare their histories.
             val range = "${worktreeRef(source)}..${worktreeRef(target)}"
 
             val statOutput = executeGitCommand(
@@ -462,6 +527,13 @@ class GitWorktreeService(private val project: Project) {
         }
     }
 
+    /**
+     * Executes the merge command inside the target worktree.
+     *
+     * @param source Worktree contributing changes.
+     * @param target Worktree receiving the merge.
+     * @param fastForwardOnly Whether to forbid merge commits.
+     */
     private fun mergeWorktreeInternal(
         source: WorktreeInfo,
         target: WorktreeInfo,
@@ -536,7 +608,11 @@ class GitWorktreeService(private val project: Project) {
     }
 
     /**
-     * Executes a Git command and returns the output.
+     * Executes a Git command via the IntelliJ CLI utilities.
+     *
+     * @param workingDir Optional working directory for Git.
+     * @param args Arguments passed to the Git binary.
+     * @return [ProcessOutput] containing stdout/stderr/exitCode from the command.
      */
     private fun executeGitCommand(workingDir: Path?, vararg args: String): ProcessOutput {
         assertBackgroundThread()
@@ -548,11 +624,15 @@ class GitWorktreeService(private val project: Project) {
             commandLine.setWorkDirectory(workingDir.toFile())
         }
 
+        // Use a generous timeout—Git operations against large repositories may take a few seconds.
         return ExecUtil.execAndGetOutput(commandLine, 30000)
     }
 
     /**
-     * Parses the output of `git worktree list --porcelain`.
+     * Converts the porcelain output from `git worktree list` into structured [WorktreeInfo] instances.
+     *
+     * @param output Raw stdout from the Git command.
+     * @return Parsed worktree metadata with best-effort main-worktree detection.
      */
     private fun parseWorktreeList(output: String): List<WorktreeInfo> {
         val worktrees = mutableListOf<WorktreeInfo>()
@@ -612,7 +692,7 @@ class GitWorktreeService(private val project: Project) {
     }
 
     /**
-     * Gets the project's base path.
+     * Resolves the project's base directory as a [Path], returning null when inaccessible.
      */
     private fun getProjectPath(): Path? {
         val basePath = project.basePath ?: return null
@@ -620,15 +700,27 @@ class GitWorktreeService(private val project: Project) {
         return if (path.exists()) path else null
     }
 
+    /**
+     * Broadcasts a worktree change event to interested listeners.
+     */
     private fun notifyWorktreesChanged() {
         project.messageBus.syncPublisher(WORKTREE_TOPIC).worktreesChanged()
     }
 
+    /**
+     * Derives a Git ref representing the supplied worktree for diff/merge invocations.
+     */
     private fun worktreeRef(worktree: WorktreeInfo): String {
         val branch = worktree.branch
         return branch?.ifBlank { null } ?: worktree.commit
     }
 
+    /**
+     * Creates an allow-empty commit used to bootstrap repositories with no history.
+     *
+     * @param projectPath Repository root path.
+     * @param message Commit message to author.
+     */
     private fun createInitialCommit(projectPath: Path, message: String): WorktreeOperationResult {
         return try {
             val output = executeGitCommand(projectPath, "commit", "--allow-empty", "-m", message)
@@ -646,6 +738,12 @@ class GitWorktreeService(private val project: Project) {
         }
     }
 
+    /**
+     * Runs the provided task on the shared application executor and logs failures consistently.
+     *
+     * @param operation Name used for logging context.
+     * @param task Work to execute off the EDT.
+     */
     private fun <T> runAsync(operation: String, task: () -> T): CompletableFuture<T> {
         return CompletableFuture.supplyAsync({
             try {
@@ -657,31 +755,47 @@ class GitWorktreeService(private val project: Project) {
         }, AppExecutorUtil.getAppExecutorService())
     }
 
+    /**
+     * Asserts that the current thread is not the Event Dispatch Thread to avoid UI freezes.
+     */
     private fun assertBackgroundThread() {
         ApplicationManager.getApplication().assertIsNonDispatchThread()
     }
 
+    /**
+     * Overrides Git repository detection for tests that use in-memory fixtures.
+     */
     @TestOnly
     fun forceGitRepositoryForTests(force: Boolean) {
         treatAsGitRepositoryInTests = force
     }
 }
 
+/**
+ * Determines whether the supplied path represents the main (non-worktree) checkout.
+ *
+ * @param path Candidate worktree path.
+ * @param isBare True when the repository is bare, which implies main state.
+ * @param defaultIfUnknown Value returned when heuristics cannot classify the path.
+ */
 internal fun determineIfMainWorktree(path: Path, isBare: Boolean, defaultIfUnknown: Boolean = false): Boolean {
     if (isBare) return true
 
     val gitLocation = path.resolve(".git")
 
+    // The presence of a `.git` directory indicates the root checkout.
     if (Files.isDirectory(gitLocation)) {
         return true
     }
 
+    // A symlink typically points to the gitdir inside the main repository structure.
     if (Files.isSymbolicLink(gitLocation)) {
         val linkTarget = runCatching { Files.readSymbolicLink(gitLocation) }.getOrNull()
         val resolved = resolveGitdirCandidate(gitLocation, linkTarget)
         return resolved?.let { !it.containsWorktreesSegment() } ?: defaultIfUnknown
     }
 
+    // Plain files store a `gitdir:` pointer; inspect it to detect worktree metadata.
     if (Files.isRegularFile(gitLocation)) {
         val rawContents = runCatching { Files.readString(gitLocation) }.getOrNull()
             ?: return defaultIfUnknown
@@ -703,18 +817,30 @@ internal fun determineIfMainWorktree(path: Path, isBare: Boolean, defaultIfUnkno
     return defaultIfUnknown
 }
 
+/**
+ * Resolves a relative gitdir entry discovered inside `.git` files or symlinks.
+ *
+ * @param gitLocation Location of the `.git` metadata.
+ * @param candidate Raw path read from the gitdir reference.
+ * @return Normalized absolute path, or null when it cannot be resolved.
+ */
 private fun resolveGitdirCandidate(gitLocation: Path, candidate: Path?): Path? {
     candidate ?: return null
     val normalized = if (candidate.isAbsolute) {
         candidate
     } else {
+        // Relative entries are resolved against the `.git` location discovered earlier.
         gitLocation.parent?.resolve(candidate) ?: return null
     }
     return runCatching { normalized.normalize() }.getOrNull()
 }
 
+/**
+ * Checks whether the path contains a worktrees segment, indicating a linked worktree checkout.
+ */
 private fun Path.containsWorktreesSegment(): Boolean {
     for (segment in this) {
+        // Git stores linked worktrees under a `worktrees` directory; detecting that segment identifies non-main roots.
         if (segment.toString().equals("worktrees", ignoreCase = true)) {
             return true
         }
