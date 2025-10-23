@@ -192,6 +192,9 @@ object WorktreeOperations {
         // Recursive function to handle initial commit flow
         lateinit var submitCreateRequest: (Boolean) -> Unit
 
+        /**
+         * Processes the result from Git and surfaces notifications/callbacks on the EDT.
+         */
         fun handleResult(result: WorktreeOperationResult) {
             when (result) {
                 is WorktreeOperationResult.Success -> {
@@ -300,8 +303,10 @@ object WorktreeOperations {
     fun openWorktree(
         project: Project,
         worktree: WorktreeInfo,
-        confirmBeforeOpen: Boolean = true
+        confirmBeforeOpen: Boolean = false
     ) {
+        // By default, ProjectUtil.openOrImport will ask the user if the project should open in a new
+        // window or the current one, so this confirmation is not normally needed.
         if (confirmBeforeOpen) {
             val result = Messages.showYesNoCancelDialog(
                 project,
@@ -316,6 +321,7 @@ object WorktreeOperations {
         }
 
         try {
+            // Open the worktree
             ProjectUtil.openOrImport(worktree.path, project, false)
         } catch (e: Exception) {
             NotificationGroupManager.getInstance()
@@ -474,6 +480,7 @@ object WorktreeOperations {
  * - Automatic path suggestion based on branch name
  * - Validation for empty fields, path length, and Windows reserved names
  */
+@Suppress("CanBeParameter")
 internal class CreateWorktreeDialog(
     private val project: Project,
     private val defaultParentPath: Path? = null,
@@ -518,15 +525,32 @@ internal class CreateWorktreeDialog(
         }
 
         // Update path when branch name changes
+        // Keep the derived worktree path in sync with branch name edits.
         branchNameField.document.addDocumentListener(object : javax.swing.event.DocumentListener {
+            /**
+             * Recomputes the default location when characters are inserted.
+             */
             override fun insertUpdate(e: javax.swing.event.DocumentEvent?) = updateDefaultPath()
+
+            /**
+             * Recomputes the default location when characters are removed.
+             */
             override fun removeUpdate(e: javax.swing.event.DocumentEvent?) = updateDefaultPath()
+
+            /**
+             * Handles styled updates even though the field rarely emits them.
+             */
             override fun changedUpdate(e: javax.swing.event.DocumentEvent?) = updateDefaultPath()
         })
 
         init()
     }
 
+    /**
+     * Recomputes the default worktree path whenever the branch name changes.
+     *
+     * This keeps the suggested directory aligned with the latest branch input.
+     */
     private fun updateDefaultPath() {
         val branchName = branchNameField.text.trim()
         if (branchName.isEmpty()) {
@@ -534,6 +558,7 @@ internal class CreateWorktreeDialog(
         }
 
         val projectPath = project.basePath?.let { Paths.get(it) }
+        // Prefer the injected parent path, then fall back to the current project's parent folder.
         val defaultParent = defaultParentPath?.toFile()
             ?: project.basePath?.let { File(it).parentFile }
             ?: return
@@ -542,6 +567,9 @@ internal class CreateWorktreeDialog(
         pathField.text = File(defaultParent, suggestedName).absolutePath
     }
 
+    /**
+     * Builds the dialog UI containing the branch and path inputs.
+     */
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridBagLayout())
         val gbc = GridBagConstraints().apply {
@@ -572,6 +600,11 @@ internal class CreateWorktreeDialog(
         return panel
     }
 
+    /**
+     * Validates dialog inputs before accepting the dialog.
+     *
+     * Ensures branch name and path are set and remain compatible with Windows constraints.
+     */
     override fun doValidate(): ValidationInfo? {
         val branchName = branchNameField.text.trim()
         if (branchName.isEmpty()) {
@@ -604,8 +637,14 @@ internal class CreateWorktreeDialog(
         return null
     }
 
+    /**
+     * @return Trimmed branch name from the input field.
+     */
     fun getBranchName(): String = branchNameField.text.trim()
 
+    /**
+     * @return Trimmed worktree path from the input field.
+     */
     fun getWorktreePath(): String = pathField.text.trim()
 
     companion object {
@@ -630,4 +669,3 @@ internal class CreateWorktreeDialog(
         }
     }
 }
-
