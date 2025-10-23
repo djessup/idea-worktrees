@@ -111,5 +111,6 @@ Prefer BasePlatformTestCase (or lighter unit tests) and mock Git CLI interaction
 - 2025-10-22 – Wired ManageWorktreesDialog "Create" button through shared flow; added regression coverage via ManageWorktreesDialogTest.testDialogCreateWorktreeUpdatesTable.
 - 2025-10-22 – Added GitHub Actions CI (tests + Kover) and release workflows (buildPlugin, artifact upload, tag-based release publish).
 - 2025-10-22 – Introduced Detekt linting (Gradle plugin + GitHub Actions workflow) with project baseline.
+- 2025-10-23 – Added comprehensive KDoc and inline commentary across services, actions, UI, and tests to satisfy the doc coverage requirement.
 
 _End of file._
