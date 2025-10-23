@@ -8,8 +8,14 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.PlatformTestUtil
 
+/**
+ * UI-level tests validating the manage worktrees dialog refresh behaviour.
+ */
 class ManageWorktreesDialogTest : AbstractGitWorktreeTestCase() {
 
+    /**
+     * Confirms the dialog loads worktrees on initialization without manual refresh.
+     */
     fun testDialogLoadsWorktreesAutomaticallyOnOpen() {
         createEmptyCommit("initial")
         val service = GitWorktreeService.getInstance(project)
@@ -40,6 +46,9 @@ class ManageWorktreesDialogTest : AbstractGitWorktreeTestCase() {
         Disposer.dispose(disposable)
     }
 
+    /**
+     * Verifies the dialog marks the project worktree as the current entry.
+     */
     fun testDialogLoadsWorktreesAndMarksCurrent() {
         createEmptyCommit("initial")
         val service = GitWorktreeService.getInstance(project)
@@ -69,6 +78,9 @@ class ManageWorktreesDialogTest : AbstractGitWorktreeTestCase() {
         Disposer.dispose(disposable)
     }
 
+    /**
+     * Ensures deleting a worktree triggers the dialog to refresh its table contents.
+     */
     fun testDialogRefreshAfterWorktreeDeletion() {
         createEmptyCommit("initial")
         val service = GitWorktreeService.getInstance(project)
@@ -98,6 +110,9 @@ class ManageWorktreesDialogTest : AbstractGitWorktreeTestCase() {
         Disposer.dispose(disposable)
     }
 
+    /**
+     * Checks creating a worktree through the test hook refreshes the table.
+     */
     fun testDialogCreateWorktreeUpdatesTable() {
         createEmptyCommit("initial")
         val service = GitWorktreeService.getInstance(project)
@@ -128,6 +143,9 @@ class ManageWorktreesDialogTest : AbstractGitWorktreeTestCase() {
         Disposer.dispose(disposable)
     }
 
+    /**
+     * Spins until the dialog caches the expected number of worktrees or times out.
+     */
     private fun waitForWorktreeCount(dialog: ManageWorktreesDialog, expected: Int) {
         val deadline = System.currentTimeMillis() + 5_000
         while (System.currentTimeMillis() < deadline) {

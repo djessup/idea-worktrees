@@ -5,8 +5,14 @@ import au.id.deejay.ideaworktrees.services.GitWorktreeService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.testFramework.PlatformTestUtil
 
+/**
+ * Async-focused tests covering the status bar widget's caching behaviour.
+ */
 class WorktreeStatusBarWidgetAsyncTest : AbstractGitWorktreeTestCase() {
 
+    /**
+     * Verifies that refreshing the cache after creating a worktree surfaces the new entry.
+     */
     fun testCacheRefreshReflectsLatestWorktrees() {
         createEmptyCommit("initial")
         val service = GitWorktreeService.getInstance(project)
@@ -40,6 +46,9 @@ class WorktreeStatusBarWidgetAsyncTest : AbstractGitWorktreeTestCase() {
             normalizePath(widget.getCachedCurrentWorktreeForTest()!!.path)
         )
     }
+    /**
+     * Polling helper that waits until a predicate returns true or times out.
+     */
     private fun waitForCondition(message: String, predicate: () -> Boolean) {
         val deadline = System.currentTimeMillis() + 5_000
         while (System.currentTimeMillis() < deadline) {

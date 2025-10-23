@@ -11,14 +11,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import java.nio.file.Paths
 
+/**
+ * Exercises status bar widget availability and convenience helpers.
+ */
 class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
 
+    /**
+     * Confirms the widget factory reports itself as available for all projects.
+     */
     fun testFactoryIsAlwaysAvailable() {
         val factory = WorktreeStatusBarWidgetFactory()
         assertTrue(factory.isAvailable(project))
         assertEquals(WorktreeStatusBarWidgetFactory.ID, factory.id)
     }
 
+    /**
+     * Verifies the widget hides itself when no Git repository is detected.
+     */
     fun testWidgetHiddenWhenProjectNotGitRepository() {
         val projectPath = Paths.get(requireNotNull(project.basePath))
         FileUtil.delete(projectPath.resolve(".git").toFile())
@@ -44,6 +53,9 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
         assertSame(hiddenValue, state)
     }
 
+    /**
+     * Ensures suggested names start with the project folder and sanitised branch name.
+     */
     fun testSuggestDirectoryNameUsesProjectFolder() {
         val projectPath = java.nio.file.Paths.get(requireNotNull(project.basePath))
         val branch = "feature/widget"
@@ -54,6 +66,9 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
         assertEquals(expected, suggested)
     }
 
+    /**
+     * Confirms underscores remain intact during directory name sanitisation.
+     */
     fun testSuggestDirectoryNamePreservesUnderscores() {
         val projectPath = java.nio.file.Paths.get("/test/my-project")
         val branch = "my_feature_branch"
@@ -61,6 +76,9 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
         assertEquals("my-project-my_feature_branch", suggested)
     }
 
+    /**
+     * Verifies duplicated separators collapse into a single hyphenated segment.
+     */
     fun testSuggestDirectoryNameHandlesMultipleSlashes() {
         val projectPath = java.nio.file.Paths.get("/test/my-project")
         val branch = "feature//double-slash"
@@ -68,6 +86,9 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
         assertEquals("my-project-feature-double-slash", suggested)
     }
 
+    /**
+     * Checks a variety of disallowed characters are replaced with safe hyphenated text.
+     */
     fun testSuggestDirectoryNameSanitizesSpecialCharacters() {
         val projectPath = java.nio.file.Paths.get("/test/my-project")
 
@@ -84,6 +105,9 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
         assertEquals("my-project-test-branch", au.id.deejay.ideaworktrees.utils.WorktreeOperations.suggestDirectoryName(projectPath, "test@branch"))
     }
 
+    /**
+     * Ensures leading and trailing punctuation is trimmed from suggested names.
+     */
     fun testSuggestDirectoryNameTrimsLeadingAndTrailingSpecialChars() {
         val projectPath = java.nio.file.Paths.get("/test/my-project")
 
@@ -103,6 +127,9 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
         assertEquals("my-project-middle", au.id.deejay.ideaworktrees.utils.WorktreeOperations.suggestDirectoryName(projectPath, "-.middle.-"))
     }
 
+    /**
+     * Confirms valid characters (hyphen, dot, underscore, digits) pass through unchanged.
+     */
     fun testSuggestDirectoryNamePreservesValidCharacters() {
         val projectPath = java.nio.file.Paths.get("/test/my-project")
 
@@ -119,6 +146,9 @@ class WorktreeStatusBarWidgetTest : BasePlatformTestCase() {
         assertEquals("my-project-v1.2.3", au.id.deejay.ideaworktrees.utils.WorktreeOperations.suggestDirectoryName(projectPath, "v1.2.3"))
     }
 
+    /**
+     * Verifies the helper defaults to `project` when the project directory is unknown.
+     */
     fun testSuggestDirectoryNameHandlesNullProjectPath() {
         val suggested = au.id.deejay.ideaworktrees.utils.WorktreeOperations.suggestDirectoryName(null, "feature/test")
         assertEquals("project-feature-test", suggested)
