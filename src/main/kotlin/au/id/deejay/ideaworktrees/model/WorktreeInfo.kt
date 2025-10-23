@@ -10,6 +10,7 @@ import java.nio.file.Path
  * @property commit The commit hash currently checked out
  * @property isLocked Whether the worktree is locked
  * @property isPrunable Whether the worktree can be pruned (directory doesn't exist)
+ * @property isDirty Whether the worktree contains uncommitted changes
  * @property isBare Whether this is a bare repository
  * @property isMain Whether this worktree is the primary/main checkout for the repository
  */
@@ -19,6 +20,7 @@ data class WorktreeInfo(
     val commit: String,
     val isLocked: Boolean = false,
     val isPrunable: Boolean = false,
+    val isDirty: Boolean = false,
     val isBare: Boolean = false,
     val isMain: Boolean = false
 ) {
@@ -52,7 +54,10 @@ data class WorktreeInfo(
         }
     }
 
+    /**
+     * @return Readable description including key worktree metadata.
+     */
     override fun toString(): String {
-        return "WorktreeInfo(path=$path, branch=$branch, commit=${commit.take(7)}, isMain=$isMain, isLocked=$isLocked, isPrunable=$isPrunable)"
+        return "WorktreeInfo(path=$path, branch=$branch, commit=${commit.take(7)}, isMain=$isMain, isLocked=$isLocked, isPrunable=$isPrunable, isDirty=$isDirty, isBare=$isBare)"
     }
 }
