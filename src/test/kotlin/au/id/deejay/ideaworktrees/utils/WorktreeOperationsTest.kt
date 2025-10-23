@@ -6,17 +6,15 @@ import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
 
 /**
- * Tests for WorktreeOperations utility class.
+ * Focused tests exercising the headless portions of [WorktreeOperations].
  *
- * Note: These tests focus on the non-interactive aspects of WorktreeOperations.
- * Interactive dialog flows (confirmations, prompts) are tested through UI integration tests.
+ * Interactive flows involving dialogs are covered by higher-level UI tests.
  */
 class WorktreeOperationsTest : AbstractGitWorktreeTestCase() {
 
     /**
-     * Test that WorktreeOperations.openWorktree handles valid worktrees without throwing exceptions.
+     * Ensures `openWorktree` completes without prompting when confirmation is disabled.
      */
-
     fun testOpenWorktreeWithoutConfirmation() {
         createEmptyCommit("initial")
         val service = GitWorktreeService.getInstance(project)
@@ -44,6 +42,9 @@ class WorktreeOperationsTest : AbstractGitWorktreeTestCase() {
         }
     }
 
+    /**
+     * Confirms `openWorktree` gracefully handles cases where the worktree directory is missing.
+     */
     fun testOpenWorktreeHandlesNonExistentPath() {
         val nonExistentWorktree = WorktreeInfo(
             path = worktreePath("wt-nonexistent"),
@@ -66,4 +67,3 @@ class WorktreeOperationsTest : AbstractGitWorktreeTestCase() {
         }
     }
 }
-
