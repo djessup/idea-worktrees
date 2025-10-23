@@ -13,6 +13,9 @@ import com.intellij.openapi.project.DumbAware
  */
 class CreateWorktreeAction : AnAction(), DumbAware {
 
+    /**
+     * Opens the create worktree dialog and delegates to [WorktreeOperations].
+     */
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
 
@@ -30,6 +33,9 @@ class CreateWorktreeAction : AnAction(), DumbAware {
         )
     }
 
+    /**
+     * Enables the action only when the current project is backed by a Git repository.
+     */
     override fun update(e: AnActionEvent) {
         val project = e.project
         if (project == null) {
@@ -41,6 +47,9 @@ class CreateWorktreeAction : AnAction(), DumbAware {
         e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
+    /**
+     * Requests background updates to avoid blocking the UI thread during Git checks.
+     */
     override fun getActionUpdateThread(): ActionUpdateThread {
         return ActionUpdateThread.BGT
     }

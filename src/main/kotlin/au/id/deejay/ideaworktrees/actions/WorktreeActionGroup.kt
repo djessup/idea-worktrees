@@ -10,6 +10,9 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
  */
 class WorktreeActionGroup : DefaultActionGroup() {
 
+    /**
+     * Shows the group only when Git support is available for the project.
+     */
     override fun update(e: AnActionEvent) {
         val project = e.project
         if (project == null) {
@@ -21,8 +24,10 @@ class WorktreeActionGroup : DefaultActionGroup() {
         e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
+    /**
+     * Requests background execution of the update routine.
+     */
     override fun getActionUpdateThread(): ActionUpdateThread {
         return ActionUpdateThread.BGT
     }
 }
-

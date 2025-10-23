@@ -28,6 +28,9 @@ import javax.swing.JPanel
  */
 class MergeWorktreeAction : AnAction(), DumbAware {
 
+    /**
+     * Coordinates the merge workflow by presenting the selection dialog and invoking the service.
+     */
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
@@ -102,6 +105,9 @@ class MergeWorktreeAction : AnAction(), DumbAware {
             }
     }
 
+    /**
+     * Enables the action only for Git repositories.
+     */
     override fun update(e: AnActionEvent) {
         val project = e.project
         if (project == null) {
@@ -112,8 +118,14 @@ class MergeWorktreeAction : AnAction(), DumbAware {
         e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
+    /**
+     * Runs update routines off the EDT.
+     */
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
+    /**
+     * Displays a notification describing the merge outcome.
+     */
     private fun notify(project: com.intellij.openapi.project.Project, title: String, message: String, type: NotificationType) {
         NotificationGroupManager.getInstance()
             .getNotificationGroup("Git Worktree")
@@ -122,6 +134,9 @@ class MergeWorktreeAction : AnAction(), DumbAware {
     }
 }
 
+/**
+ * Dialog used to select source/target worktrees and merge options.
+ */
 private class MergeWorktreesDialog(
     project: com.intellij.openapi.project.Project,
     private val worktrees: List<WorktreeInfo>
@@ -138,12 +153,16 @@ private class MergeWorktreesDialog(
         sourceCombo.renderer = WorktreeComboBoxRenderer()
         targetCombo.renderer = WorktreeComboBoxRenderer()
         if (worktrees.size >= 2) {
+            // Default to merging between the first two worktrees.
             sourceCombo.selectedIndex = 0
             targetCombo.selectedIndex = 1
         }
         init()
     }
 
+    /**
+     * Builds the UI with source/target selectors and merge options.
+     */
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridBagLayout())
         val gbc = GridBagConstraints().apply {
@@ -180,6 +199,9 @@ private class MergeWorktreesDialog(
         return panel
     }
 
+    /**
+     * Validates that the user selected two distinct worktrees.
+     */
     override fun doValidate(): ValidationInfo? {
         val source = sourceCombo.selectedItem as? WorktreeInfo
             ?: return ValidationInfo("Select a source worktree.", sourceCombo)
@@ -191,6 +213,9 @@ private class MergeWorktreesDialog(
         return null
     }
 
+    /**
+     * @return Triple of (source, target, fastForwardOnly flag) chosen by the user.
+     */
     fun getSelection(): Triple<WorktreeInfo, WorktreeInfo, Boolean> {
         val source = sourceCombo.selectedItem as WorktreeInfo
         val target = targetCombo.selectedItem as WorktreeInfo

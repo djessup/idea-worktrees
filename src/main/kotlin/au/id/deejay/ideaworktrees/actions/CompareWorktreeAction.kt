@@ -29,6 +29,9 @@ import javax.swing.JTextArea
  */
 class CompareWorktreeAction : AnAction(), DumbAware {
 
+    /**
+     * Orchestrates the worktree diff workflow and surfaces results to the user.
+     */
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
@@ -91,8 +94,11 @@ class CompareWorktreeAction : AnAction(), DumbAware {
                     }
                 }, ModalityState.nonModal())
             }
-    }
+}
 
+/**
+ * Dialog that renders a read-only summary and detailed diff text.
+ */
 private class DiffResultDialog(
     project: com.intellij.openapi.project.Project,
     private val summary: String,
@@ -113,6 +119,9 @@ private class DiffResultDialog(
         init()
     }
 
+    /**
+     * Builds the UI containing the summary label and scrollable diff text.
+     */
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(BorderLayout())
         panel.border = JBUI.Borders.empty(8)
@@ -124,9 +133,12 @@ private class DiffResultDialog(
         panel.add(JScrollPane(textArea), BorderLayout.CENTER)
 
         return panel
+            }
     }
-}
 
+    /**
+     * Restricts the action to projects with Git metadata.
+     */
     override fun update(e: AnActionEvent) {
         val project = e.project
         if (project == null) {
@@ -137,9 +149,15 @@ private class DiffResultDialog(
         e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
+    /**
+     * Runs updates asynchronously to keep the UI responsive.
+     */
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 }
 
+/**
+ * Dialog that lets the user choose source and target worktrees for comparison.
+ */
 private class CompareWorktreesDialog(
     project: com.intellij.openapi.project.Project,
     private val worktrees: List<WorktreeInfo>
@@ -155,12 +173,16 @@ private class CompareWorktreesDialog(
         sourceCombo.renderer = WorktreeComboBoxRenderer()
         targetCombo.renderer = WorktreeComboBoxRenderer()
         if (worktrees.size >= 2) {
+            // Default to comparing the first two entries to minimize user input.
             sourceCombo.selectedIndex = 0
             targetCombo.selectedIndex = 1
         }
         init()
     }
 
+    /**
+     * Constructs the selector panel with two labeled combo boxes.
+     */
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridBagLayout())
         val gbc = GridBagConstraints().apply {
@@ -191,6 +213,9 @@ private class CompareWorktreesDialog(
         return panel
     }
 
+    /**
+     * Validates the selection ensuring both entries are distinct.
+     */
     override fun doValidate(): ValidationInfo? {
         val source = sourceCombo.selectedItem as? WorktreeInfo
             ?: return ValidationInfo("Select a source worktree.", sourceCombo)
@@ -202,6 +227,9 @@ private class CompareWorktreesDialog(
         return null
     }
 
+    /**
+     * @return Pair containing the chosen source and target worktrees.
+     */
     fun getSelection(): Pair<WorktreeInfo, WorktreeInfo> {
         val source = sourceCombo.selectedItem as WorktreeInfo
         val target = targetCombo.selectedItem as WorktreeInfo

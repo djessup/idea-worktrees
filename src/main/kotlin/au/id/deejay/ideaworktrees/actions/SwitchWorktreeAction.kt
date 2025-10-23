@@ -21,6 +21,9 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
  */
 class SwitchWorktreeAction : AnAction(), DumbAware {
 
+    /**
+     * Presents a popup of available worktrees and opens the selected entry.
+     */
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
@@ -65,10 +68,16 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
 
                     val popup = JBPopupFactory.getInstance().createListPopup(
                         object : BaseListPopupStep<WorktreeInfo>("Switch to Worktree", otherWorktrees) {
+                            /**
+                             * Formats each entry with both display and directory name.
+                             */
                             override fun getTextFor(value: WorktreeInfo): String {
                                 return "${value.displayName} (${value.name})"
                             }
 
+                            /**
+                             * Initiates the switch when a worktree is chosen.
+                             */
                             override fun onChosen(selectedValue: WorktreeInfo, finalChoice: Boolean): PopupStep<*>? {
                                 if (finalChoice) {
                                     switchToWorktree(project, selectedValue)
@@ -83,6 +92,9 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
             }
     }
 
+    /**
+     * Prompts the user to confirm switching before opening the selected worktree.
+     */
     private fun switchToWorktree(project: com.intellij.openapi.project.Project, worktree: WorktreeInfo) {
         // Check if worktree directory exists before prompting
         val worktreeFile = worktree.path.toFile()
@@ -114,6 +126,9 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
         )
     }
 
+    /**
+     * Keeps the action disabled when the project lacks Git metadata.
+     */
     override fun update(e: AnActionEvent) {
         val project = e.project
         if (project == null) {
@@ -127,6 +142,9 @@ class SwitchWorktreeAction : AnAction(), DumbAware {
         e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
+    /**
+     * Schedules update calculations on a background thread.
+     */
     override fun getActionUpdateThread(): ActionUpdateThread {
         return ActionUpdateThread.BGT
     }

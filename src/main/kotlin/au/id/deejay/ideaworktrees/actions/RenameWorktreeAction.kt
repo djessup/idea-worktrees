@@ -20,6 +20,9 @@ import java.nio.file.Path
  */
 class RenameWorktreeAction : AnAction(), DumbAware {
 
+    /**
+     * Prompts the user for a worktree to rename and the new directory name.
+     */
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
@@ -39,6 +42,7 @@ class RenameWorktreeAction : AnAction(), DumbAware {
 
                     val projectRoot = project.basePath?.let { Paths.get(it).toAbsolutePath().normalize().toString() }
 
+                    // Exclude the main and current worktree to protect critical checkouts.
                     val candidates = worktrees.filter { worktree ->
                         val normalizedPath = worktree.path.toAbsolutePath().normalize().toString()
                         val isProjectRoot = projectRoot != null && normalizedPath == projectRoot
@@ -133,6 +137,9 @@ class RenameWorktreeAction : AnAction(), DumbAware {
             }
     }
 
+    /**
+     * Enables the action only when a Git repository is present.
+     */
     override fun update(e: AnActionEvent) {
         val project = e.project
         if (project == null) {
@@ -143,13 +150,22 @@ class RenameWorktreeAction : AnAction(), DumbAware {
         e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
+    /**
+     * Declares that update checks should run off the EDT.
+     */
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
+    /**
+     * Validates a proposed worktree directory name against basic filesystem constraints.
+     */
     private fun isValidName(name: String): Boolean {
         if (name.isBlank()) return false
         return !name.contains('/') && !name.contains('\\')
     }
 
+    /**
+     * Renders a friendly descriptor used inside selection dialogs.
+     */
     private fun WorktreeInfo.displayString(): String {
         return buildString {
             append(displayName)
@@ -158,6 +174,9 @@ class RenameWorktreeAction : AnAction(), DumbAware {
         }
     }
 
+    /**
+     * Shows a notification about the rename outcome.
+     */
     private fun notify(project: com.intellij.openapi.project.Project, title: String, message: String, type: NotificationType) {
         NotificationGroupManager.getInstance()
             .getNotificationGroup("Git Worktree")

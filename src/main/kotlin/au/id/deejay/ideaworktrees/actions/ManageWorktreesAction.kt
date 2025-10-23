@@ -12,6 +12,9 @@ import com.intellij.openapi.project.DumbAware
  */
 class ManageWorktreesAction : AnAction(), DumbAware {
 
+    /**
+     * Displays the manage worktrees dialog for the active project.
+     */
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
@@ -21,6 +24,9 @@ class ManageWorktreesAction : AnAction(), DumbAware {
         dialog.show()
     }
 
+    /**
+     * Limits visibility to projects that are Git repositories.
+     */
     override fun update(e: AnActionEvent) {
         val project = e.project
         if (project == null) {
@@ -32,8 +38,10 @@ class ManageWorktreesAction : AnAction(), DumbAware {
         e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
+    /**
+     * Performs `update` checks on a background thread to keep the UI responsive.
+     */
     override fun getActionUpdateThread(): ActionUpdateThread {
         return ActionUpdateThread.BGT
     }
 }
-

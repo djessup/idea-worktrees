@@ -21,6 +21,9 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
  */
 class DeleteWorktreeAction : AnAction(), DumbAware {
 
+    /**
+     * Allows the user to select a worktree and delegates deletion to [WorktreeOperations].
+     */
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val service = GitWorktreeService.getInstance(project)
@@ -65,10 +68,16 @@ class DeleteWorktreeAction : AnAction(), DumbAware {
 
                     val popup = JBPopupFactory.getInstance().createListPopup(
                         object : BaseListPopupStep<WorktreeInfo>("Delete Worktree", deletableWorktrees) {
+                            /**
+                             * Displays both branch name and folder to avoid ambiguity.
+                             */
                             override fun getTextFor(value: WorktreeInfo): String {
                                 return "${value.displayName} (${value.name})"
                             }
 
+                            /**
+                             * Invokes deletion when the user confirms a choice.
+                             */
                             override fun onChosen(selectedValue: WorktreeInfo, finalChoice: Boolean): PopupStep<*>? {
                                 if (finalChoice) {
                                     deleteWorktree(project, service, selectedValue)
@@ -83,6 +92,9 @@ class DeleteWorktreeAction : AnAction(), DumbAware {
             }
     }
 
+    /**
+     * Initiates the shared delete workflow for the chosen worktree.
+     */
     private fun deleteWorktree(
         project: com.intellij.openapi.project.Project,
         service: GitWorktreeService,
@@ -96,6 +108,9 @@ class DeleteWorktreeAction : AnAction(), DumbAware {
         )
     }
 
+    /**
+     * Hides the action for non-Git projects.
+     */
     override fun update(e: AnActionEvent) {
         val project = e.project
         if (project == null) {
@@ -109,6 +124,9 @@ class DeleteWorktreeAction : AnAction(), DumbAware {
         e.presentation.isEnabledAndVisible = service.isGitRepository()
     }
 
+    /**
+     * Declares that update logic runs on a background thread.
+     */
     override fun getActionUpdateThread(): ActionUpdateThread {
         return ActionUpdateThread.BGT
     }
