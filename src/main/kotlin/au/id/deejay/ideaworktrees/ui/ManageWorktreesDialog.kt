@@ -4,6 +4,7 @@ import au.id.deejay.ideaworktrees.model.WorktreeInfo
 import au.id.deejay.ideaworktrees.model.WorktreeOperationResult
 import au.id.deejay.ideaworktrees.services.GitWorktreeService
 import au.id.deejay.ideaworktrees.utils.WorktreeOperations
+import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
@@ -12,6 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
+import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.nio.file.Path
@@ -35,9 +37,9 @@ class ManageWorktreesDialog(
     private val table = JBTable(tableModel)
 
     // Buttons
-    private val createButton = JButton("New")
-    private val openButton = JButton("Open")
-    private val deleteButton = JButton("Delete")
+    private val createButton = JButton("New", AllIcons.Actions.New)
+    private val openButton = JButton("Open", AllIcons.Actions.OpenNewTab)
+    private val deleteButton = JButton("Delete", AllIcons.Actions.DeleteTag)
     private val refreshButton = JButton("Refresh")
 
     init {
@@ -49,6 +51,7 @@ class ManageWorktreesDialog(
         table.selectionModel.addListSelectionListener {
             updateButtonStates()
         }
+
 
         // Set up button actions
         createButton.addActionListener { createNewWorktree() }
@@ -62,6 +65,9 @@ class ManageWorktreesDialog(
         refreshWorktrees()
     }
 
+    /**
+     * Launches the create worktree flow and refreshes the table upon completion.
+     */
     private fun createNewWorktree() {
         val modality = ModalityState.stateForComponent(table)
 
@@ -75,11 +81,17 @@ class ManageWorktreesDialog(
             promptToOpen = true,
             modalityState = modality,
             callbacks = WorktreeOperations.CreateWorktreeCallbacks(
-                onSuccess = { refreshWorktrees() }
+                onSuccess = {
+                    refreshWorktrees()
+                    close(OK_EXIT_CODE)
+                }
             )
         )
     }
 
+    /**
+     * Builds the main dialog content containing the table and action buttons.
+     */
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(BorderLayout())
 
@@ -105,8 +117,16 @@ class ManageWorktreesDialog(
         return panel
     }
 
+    /**
+     * Reloads worktree metadata from Git and updates the table selections.
+     */
     private fun refreshWorktrees() {
         val application = ApplicationManager.getApplication()
+
+        if (application.isDisposed) {
+            return
+        }
+
         val modality = ModalityState.stateForComponent(table)
 
         if (!service.isGitRepository()) {
@@ -148,6 +168,9 @@ class ManageWorktreesDialog(
             }
     }
 
+    /**
+     * Updates button enabled states based on current selection and repository status.
+     */
     private fun updateButtonStates() {
         val isGitRepo = service.isGitRepository()
         val selectedRow = table.selectedRow
@@ -163,11 +186,17 @@ class ManageWorktreesDialog(
         }
     }
 
+    /**
+     * Refreshes the table contents from tests.
+     */
     @TestOnly
     fun refreshForTest() {
         refreshWorktrees()
     }
 
+    /**
+     * Creates a worktree via the service for testing scenarios.
+     */
     @TestOnly
     fun createWorktreeForTest(
         path: Path,
@@ -192,12 +221,21 @@ class ManageWorktreesDialog(
         }
     }
 
+    /**
+     * Returns a snapshot of the current worktree list for assertions.
+     */
     @TestOnly
     fun snapshotWorktrees(): List<WorktreeInfo> = synchronized(worktrees) { worktrees.toList() }
 
+    /**
+     * Returns the current worktree tracked by the dialog for tests.
+     */
     @TestOnly
     fun currentWorktreeForTest(): WorktreeInfo? = currentWorktree
 
+    /**
+     * Opens the selected worktree in a new IDE window after requesting confirmation.
+     */
     private fun openSelectedWorktree() {
         val selectedRow = table.selectedRow
         if (selectedRow < 0 || selectedRow >= worktrees.size) return
@@ -211,6 +249,9 @@ class ManageWorktreesDialog(
         )
     }
 
+    /**
+     * Triggers the shared delete workflow for the selected worktree.
+     */
     private fun deleteSelectedWorktree() {
         val selectedRow = table.selectedRow
         if (selectedRow < 0 || selectedRow >= worktrees.size) return
@@ -235,19 +276,31 @@ class ManageWorktreesDialog(
     private inner class WorktreeTableModel : AbstractTableModel() {
         private val columnNames = arrayOf("Current", "Name", "Branch", "Path", "Commit", "Status")
 
+        /**
+         * @return Number of worktrees displayed in the table.
+         */
         override fun getRowCount(): Int = worktrees.size
 
+        /**
+         * @return Number of columns shown in the table header.
+         */
         override fun getColumnCount(): Int = columnNames.size
 
+        /**
+         * @return Column header for the requested index.
+         */
         override fun getColumnName(column: Int): String = columnNames[column]
 
+        /**
+         * Provides display values for each cell, including derived status text.
+         */
         override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
             if (rowIndex >= worktrees.size) return ""
 
             val worktree = worktrees[rowIndex]
             return when (columnIndex) {
                 0 -> if (worktree.path == currentWorktree?.path) "→" else ""
-                1-> worktree.displayName
+                1 -> worktree.displayName
                 2 -> worktree.branch ?: "(detached)"
                 3 -> worktree.path.toString()
                 4 -> worktree.commit.take(7)
@@ -255,11 +308,15 @@ class ManageWorktreesDialog(
                     if (worktree.isMain) append("MAIN ")
                     if (worktree.isLocked) append("LOCKED ")
                     if (worktree.isPrunable) append("PRUNABLE ")
+                    if (worktree.isDirty) append("DIRTY ")
                 }.trim().ifEmpty { "-" }
                 else -> ""
             }
         }
 
+        /**
+         * Reports the column class to assist with renderer decisions.
+         */
         override fun getColumnClass(columnIndex: Int): Class<*> = String::class.java
     }
 }

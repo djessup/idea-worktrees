@@ -65,12 +65,21 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
         updateCacheAsync()
     }
 
+    /**
+     * @return Stable identifier used by the status bar framework.
+     */
     override fun ID(): String = ID
 
+    /**
+     * Creates a new instance for additional projects.
+     */
     override fun createInstance(project: Project): StatusBarWidget {
         return WorktreeStatusBarWidget(project)
     }
 
+    /**
+     * Defines the widget's text and tooltip based on the cached worktree info.
+     */
     override fun getWidgetState(file: com.intellij.openapi.vfs.VirtualFile?): WidgetState {
         if (!service.isGitRepository()) {
             return WidgetState.HIDDEN
@@ -86,6 +95,9 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
         return WidgetState(tooltip, text, true)
     }
 
+    /**
+     * Builds the popup menu listing worktrees and quick actions.
+     */
     override fun createPopup(context: com.intellij.openapi.actionSystem.DataContext): ListPopup? {
         if (!service.isGitRepository()) {
             return null
@@ -119,6 +131,9 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
         )
     }
 
+    /**
+     * Creates the tooltip text displayed when hovering over the widget.
+     */
     private fun buildTooltip(worktree: WorktreeInfo): String {
         return buildString {
             append("Worktree: ${worktree.name}")
@@ -165,14 +180,23 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             }
     }
 
+    /**
+     * Testing helper that refreshes the cache and invokes the supplied callback when finished.
+     */
     @TestOnly
     fun refreshCacheForTest(onComplete: (() -> Unit)? = null) {
         updateCacheAsync(onComplete)
     }
 
+    /**
+     * @return Snapshot of cached worktrees for assertions.
+     */
     @TestOnly
     fun getCachedWorktreesForTest(): List<WorktreeInfo> = cachedWorktrees.get()
 
+    /**
+     * @return Cached current worktree for test assertions.
+     */
     @TestOnly
     fun getCachedCurrentWorktreeForTest(): WorktreeInfo? = cachedCurrentWorktree.get()
 
@@ -180,8 +204,19 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
      * Sealed class representing items in the worktree popup menu.
      */
     private sealed class WorktreePopupItem {
+        /**
+         * Worktree entry that may optionally represent the current worktree.
+         */
         data class WorktreeItem(val worktree: WorktreeInfo, val isCurrent: Boolean) : WorktreePopupItem()
+
+        /**
+         * Simple action entry rendered in the popup list.
+         */
         data class Action(val text: String) : WorktreePopupItem()
+
+        /**
+         * Visual separator used to split worktree items from actions.
+         */
         object Separator : WorktreePopupItem()
     }
 
@@ -194,6 +229,9 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
         private val widget: WorktreeStatusBarWidget
     ) : BaseListPopupStep<WorktreePopupItem>("Git Worktrees", items) {
 
+        /**
+         * Formats each popup entry for display.
+         */
         override fun getTextFor(value: WorktreePopupItem): String {
             return when (value) {
                 is WorktreePopupItem.WorktreeItem -> {
@@ -207,11 +245,17 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             }
         }
 
+        /**
+         * Provides an icon for each popup entry (currently none).
+         */
         override fun getIconFor(value: WorktreePopupItem): Icon? {
             // TODO: Add icons for worktrees and actions
             return null
         }
 
+        /**
+         * Inserts separators where the sentinel value is encountered.
+         */
         override fun getSeparatorAbove(value: WorktreePopupItem): com.intellij.openapi.ui.popup.ListSeparator? {
             return if (value is WorktreePopupItem.Separator) {
                 com.intellij.openapi.ui.popup.ListSeparator()
@@ -220,10 +264,16 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             }
         }
 
+        /**
+         * Indicates that the popup has no nested substeps.
+         */
         override fun hasSubstep(selectedValue: WorktreePopupItem): Boolean {
             return false
         }
 
+        /**
+         * Handles selection events, triggering worktree switches or actions.
+         */
         override fun onChosen(selectedValue: WorktreePopupItem, finalChoice: Boolean): PopupStep<*>? {
             when (selectedValue) {
                 is WorktreePopupItem.WorktreeItem -> {
@@ -241,6 +291,9 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             return PopupStep.FINAL_CHOICE
         }
 
+        /**
+         * Opens the selected worktree in a new window.
+         */
         private fun switchToWorktree(worktree: WorktreeInfo) {
             ApplicationManager.getApplication().invokeLater {
                 WorktreeOperations.openWorktree(
@@ -251,6 +304,9 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             }
         }
 
+        /**
+         * Routes action entries to the appropriate handler.
+         */
         private fun handleAction(actionText: String) {
             ApplicationManager.getApplication().invokeLater {
                 when (actionText) {
@@ -260,6 +316,9 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             }
         }
 
+        /**
+         * Launches the new worktree workflow from the popup.
+         */
         private fun createNewWorktree() {
             val projectPath = Paths.get(project.basePath ?: return)
             val parentPath = projectPath.parent
@@ -286,12 +345,18 @@ class WorktreeStatusBarWidget(project: Project) : EditorBasedStatusBarPopup(proj
             )
         }
 
+        /**
+         * Opens the manage worktrees dialog.
+         */
         private fun manageWorktrees() {
             val service = GitWorktreeService.getInstance(project)
             val dialog = ManageWorktreesDialog(project, service)
             dialog.show()
         }
 
+        /**
+         * Prevents selection of the visual separator entry.
+         */
         override fun isSelectable(value: WorktreePopupItem): Boolean {
             return value !is WorktreePopupItem.Separator
         }

@@ -7,9 +7,15 @@ import java.awt.Component
 import javax.swing.JList
 import javax.swing.ListCellRenderer
 
+/**
+ * Renderer that displays worktree display name and path within combo boxes.
+ */
 internal class WorktreeComboBoxRenderer : ListCellRenderer<WorktreeInfo> {
     private val label = JBLabel()
 
+    /**
+     * Formats the combo box cell with the worktree metadata.
+     */
     override fun getListCellRendererComponent(
         list: JList<out WorktreeInfo>,
         value: WorktreeInfo?,
@@ -17,6 +23,7 @@ internal class WorktreeComboBoxRenderer : ListCellRenderer<WorktreeInfo> {
         isSelected: Boolean,
         cellHasFocus: Boolean
     ): Component {
+        // Combine display name and path for clear disambiguation.
         label.text = value?.let { "${it.displayName} — ${it.path}" } ?: ""
         label.border = JBUI.Borders.empty(2, 6)
         if (isSelected) {
