@@ -28,6 +28,9 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
     protected val projectPath: Path
         get() = Paths.get(requireNotNull(project.basePath) { "Project basePath should not be null" })
 
+    /**
+     * Prepares the base Git repository and registers VCS mappings before each test.
+     */
     override fun setUp() {
         super.setUp()
         worktreesRoot = Files.createTempDirectory("git-worktree-tests")
@@ -36,6 +39,9 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         GitWorktreeService.getInstance(project).forceGitRepositoryForTests(true)
     }
 
+    /**
+     * Cleans up VCS mappings and worktree data while tolerating cleanup exceptions.
+     */
     override fun tearDown() {
         try {
             // Clean up any untracked files to prevent test contamination
@@ -51,6 +57,9 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         }
     }
 
+    /**
+     * Initializes a git repository with standard configuration and default ignores.
+     */
     protected fun initGitRepository() {
         FileUtil.delete(projectPath.resolve(".git").toFile())
         runGit("init")
@@ -76,6 +85,9 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         runGit("add", ".gitignore")
     }
 
+    /**
+     * Removes any untracked files left behind by tests to keep fixtures clean.
+     */
     private fun cleanupUntrackedFiles() {
         try {
             // Only clean up if .git directory exists
@@ -102,10 +114,19 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         }
     }
 
+    /**
+     * Creates an empty commit with the provided message.
+     */
     protected fun createEmptyCommit(message: String) {
         runGit("commit", "--allow-empty", "-m", message)
     }
 
+    /**
+     * Executes a git command in the provided working directory and captures stdout.
+     *
+     * @param args Git arguments to pass.
+     * @param workingDir Directory to run the command in (defaults to project root).
+     */
     protected fun runGit(vararg args: String, workingDir: Path = projectPath): String {
         val command = mutableListOf(gitExecutable)
         command.addAll(args)
@@ -127,18 +148,30 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         return output
     }
 
+    /**
+     * @return A path under the temporary worktree root for the supplied name.
+     */
     protected fun worktreePath(name: String): Path = worktreesRoot.resolve(name)
 
+    /**
+     * Normalizes a path for comparison, accounting for macOS `/private` prefixes.
+     */
     protected fun normalizePath(path: Path): String {
         return path.toAbsolutePath().normalize().toString().removePrefix("/private")
     }
 
+    /**
+     * Locates the primary worktree (matching the project path or flagged as main).
+     */
     protected fun findMainWorktree(worktrees: List<WorktreeInfo>): WorktreeInfo {
         return worktrees.firstOrNull { normalizePath(it.path) == normalizePath(projectPath) }
             ?: worktrees.firstOrNull { it.isMain }
             ?: throw IllegalStateException("Main worktree not found among ${worktrees.map { it.path }}")
     }
 
+    /**
+     * Resolves a worktree by branch name, optionally falling back to path matching.
+     */
     protected fun findWorktreeByBranch(
         worktrees: List<WorktreeInfo>,
         branchName: String,
@@ -174,14 +207,23 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         )
     }
 
+    /**
+     * Waits for a [CompletableFuture] with a 30 second timeout, failing the test on timeout.
+     */
     protected fun <T> CompletableFuture<T>.await(): T = get(30, TimeUnit.SECONDS)
 
+    /**
+     * Writes a file relative to the worktree path, creating directories as needed.
+     */
     protected fun Path.writeFile(relative: String, content: String) {
         val file = resolve(relative)
         Files.createDirectories(file.parent)
         file.writeText(content)
     }
 
+    /**
+     * Selects an appropriate git executable for test runs.
+     */
     private fun selectGitExecutable(): String {
         val explicit = System.getenv("GIT_EXECUTABLE")?.takeIf { it.isNotBlank() }
         if (explicit != null && Files.isExecutable(Paths.get(explicit))) {
@@ -194,6 +236,7 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         )
 
         for (candidate in candidates) {
+            // Use the first executable Git binary available on the test machine.
             if (Files.isExecutable(candidate)) {
                 return candidate.toString()
             }
@@ -202,6 +245,9 @@ abstract class AbstractGitWorktreeTestCase : BasePlatformTestCase() {
         return "git"
     }
 
+    /**
+     * Registers the project directory as a Git root with the VCS subsystem.
+     */
     private fun registerGitMapping() {
         ApplicationManager.getApplication().invokeAndWait {
             val manager = ProjectLevelVcsManager.getInstance(project)
