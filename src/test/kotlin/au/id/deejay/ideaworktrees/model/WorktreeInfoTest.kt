@@ -4,8 +4,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.nio.file.Paths
 
+/**
+ * Covers display name derivation and other helpers on [WorktreeInfo].
+ */
 class WorktreeInfoTest {
 
+    /**
+     * Stripping `refs/heads/` should yield the bare branch name.
+     */
     @Test
     fun displayNameStripsRefsHeadsPrefix() {
         val worktree = WorktreeInfo(
@@ -16,6 +22,9 @@ class WorktreeInfoTest {
         assertEquals("master", worktree.displayName)
     }
 
+    /**
+     * Removing `refs/remotes/` should preserve remote-qualified branch names.
+     */
     @Test
     fun displayNameStripsRefsRemotesPrefix() {
         val worktree = WorktreeInfo(
@@ -26,6 +35,9 @@ class WorktreeInfoTest {
         assertEquals("origin/feature", worktree.displayName)
     }
 
+    /**
+     * Validates tag prefixes are removed for display.
+     */
     @Test
     fun displayNameStripsRefsTagsPrefix() {
         val worktree = WorktreeInfo(
@@ -36,6 +48,9 @@ class WorktreeInfoTest {
         assertEquals("v1.0", worktree.displayName)
     }
 
+    /**
+     * Ensures branches without known prefixes are returned unchanged.
+     */
     @Test
     fun displayNameReturnsBranchAsIsWhenNoPrefixMatches() {
         val worktree = WorktreeInfo(
@@ -46,6 +61,9 @@ class WorktreeInfoTest {
         assertEquals("feature/my-branch", worktree.displayName)
     }
 
+    /**
+     * Confirms commit hashes are truncated when no branch name exists.
+     */
     @Test
     fun displayNameFallsBackToShortenedCommitWhenNoBranch() {
         val worktree = WorktreeInfo(
@@ -56,6 +74,9 @@ class WorktreeInfoTest {
         assertEquals("abc123d", worktree.displayName)
     }
 
+    /**
+     * Handles commit hashes shorter than seven characters gracefully.
+     */
     @Test
     fun displayNameHandlesShortCommitHash() {
         val worktree = WorktreeInfo(
@@ -66,6 +87,9 @@ class WorktreeInfoTest {
         assertEquals("abc", worktree.displayName)
     }
 
+    /**
+     * Treats empty branch strings as legitimate display values.
+     */
     @Test
     fun displayNameHandlesEmptyBranch() {
         val worktree = WorktreeInfo(
@@ -77,6 +101,9 @@ class WorktreeInfoTest {
         assertEquals("", worktree.displayName)
     }
 
+    /**
+     * Supports remote branches with additional path segments.
+     */
     @Test
     fun displayNameHandlesComplexRemoteBranch() {
         val worktree = WorktreeInfo(
@@ -87,6 +114,9 @@ class WorktreeInfoTest {
         assertEquals("upstream/feature/complex-name", worktree.displayName)
     }
 
+    /**
+     * Handles tags containing nested path segments.
+     */
     @Test
     fun displayNameHandlesTagWithSlashes() {
         val worktree = WorktreeInfo(
@@ -97,6 +127,9 @@ class WorktreeInfoTest {
         assertEquals("release/v1.0.0", worktree.displayName)
     }
 
+    /**
+     * Returns the last path segment as the worktree name.
+     */
     @Test
     fun nameReturnsLastPathComponent() {
         val worktree = WorktreeInfo(
@@ -107,6 +140,9 @@ class WorktreeInfoTest {
         assertEquals("my-feature", worktree.name)
     }
 
+    /**
+     * Ensures `toString` includes key identifying attributes for debugging.
+     */
     @Test
     fun toStringIncludesKeyProperties() {
         val worktree = WorktreeInfo(
@@ -126,4 +162,3 @@ class WorktreeInfoTest {
         assert(str.contains("isPrunable=false"))
     }
 }
-

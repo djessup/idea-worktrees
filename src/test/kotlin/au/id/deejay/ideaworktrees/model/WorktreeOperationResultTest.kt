@@ -6,8 +6,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * Unit tests covering the convenience helpers on [WorktreeOperationResult].
+ */
 class WorktreeOperationResultTest {
 
+    /**
+     * Ensures success results expose success messaging and no error content.
+     */
     @Test
     fun successExposeMessages() {
         val result = WorktreeOperationResult.Success(
@@ -23,6 +29,9 @@ class WorktreeOperationResultTest {
         assertNull(result.errorDetails())
     }
 
+    /**
+     * Verifies failure results surface error details and suppress success metadata.
+     */
     @Test
     fun failureExposeErrors() {
         val result = WorktreeOperationResult.Failure(
@@ -38,6 +47,9 @@ class WorktreeOperationResultTest {
         assertNull(result.successDetails())
     }
 
+    /**
+     * Checks the `RequiresInitialCommit` variant mirrors failure semantics for error accessors.
+     */
     @Test
     fun requiresInitialCommitBehavesLikeFailureForErrors() {
         val result = WorktreeOperationResult.RequiresInitialCommit("Need commit")
