@@ -20,6 +20,9 @@ import kotlin.io.path.writeText
  */
 class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
 
+    /**
+     * Ensures `createWorktree` refuses to run until the repository contains an initial commit.
+     */
     fun testCreateWorktreeRequiresInitialCommit() {
         val service = GitWorktreeService.getInstance(project)
         val target = worktreePath("wt-initial")
@@ -30,6 +33,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertFalse(target.exists())
     }
 
+    /**
+     * Confirms `createWorktree` succeeds once an initial commit exists in the repository.
+     */
     fun testCreateWorktreeAfterInitialCommit() {
         createEmptyCommit("initial")
 
@@ -49,6 +55,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue("Expected worktree paths: ${listed.map { it.path }} to contain $targetRealPath", hasMatch)
     }
 
+    /**
+     * Verifies that creating a worktree with a duplicate directory name fails gracefully.
+     */
     fun testCreateWorktreeRejectsDuplicateName() {
         createEmptyCommit("initial")
 
@@ -71,6 +80,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertFalse("Duplicate worktree directory should not be created", second.exists())
     }
 
+    /**
+     * Validates that the service can bootstrap an empty repository by creating an initial commit.
+     */
     fun testAllowCreateInitialCommit() {
         val service = GitWorktreeService.getInstance(project)
         val target = worktreePath("wt-auto")
@@ -88,6 +100,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue(target.exists())
     }
 
+    /**
+     * Checks that deleting a worktree removes its directory from disk.
+     */
     fun testDeleteWorktreeRemovesDirectory() {
         createEmptyCommit("initial")
 
@@ -102,6 +117,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertFalse(target.exists())
     }
 
+    /**
+     * Ensures moving a worktree relocates the directory and removes the original location.
+     */
     fun testMoveWorktreeMovesDirectory() {
         createEmptyCommit("initial")
 
@@ -119,6 +137,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue(moved.exists())
     }
 
+    /**
+     * Confirms the main worktree is flagged as such when listing worktrees.
+     */
     fun testListWorktreesMarksMainWorktree() {
         createEmptyCommit("initial")
 
@@ -139,6 +160,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertFalse("Secondary worktrees should not be marked as main", featureInfo.isMain)
     }
 
+    /**
+     * Verifies attempts to move the main worktree produce a failure message.
+     */
     fun testMoveWorktreeRejectsMainWorktree() {
         createEmptyCommit("initial")
 
@@ -156,6 +180,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         )
     }
 
+    /**
+     * Ensures comparing divergent worktrees yields a success result with diff details.
+     */
     fun testCompareWorktreesDetectsChanges() {
         val service = GitWorktreeService.getInstance(project)
 
@@ -180,6 +207,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue("Expected diff details to contain sample.txt, but was: $details", details?.contains("sample.txt") == true)
     }
 
+    /**
+     * Confirms that diffing against a worktree containing uncommitted changes reports a failure.
+     */
     fun testCompareWorktreesFailsWhenSourceDirty() {
         val service = GitWorktreeService.getInstance(project)
 
@@ -209,6 +239,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         )
     }
 
+    /**
+     * Verifies fast-forward merges succeed and propagate feature changes into the target worktree.
+     */
     fun testMergeWorktreeFastForward() {
         val service = GitWorktreeService.getInstance(project)
 
@@ -234,6 +267,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue("Expected merged content to include feature changes.", mergedContent.contains("feature update"))
     }
 
+    /**
+     * Ensures listing worktrees returns an empty set when the `.git` directory is missing.
+     */
     fun testListWorktreesWhenRepositoryMissingGitDir() {
         val service = GitWorktreeService.getInstance(project)
         FileUtil.delete(projectPath.resolve(".git").toFile())
@@ -243,6 +279,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue("Expected empty list when git directory is missing", listed.isEmpty())
     }
 
+    /**
+     * Checks that attempting to use a non-existent branch without `createBranch` fails.
+     */
     fun testCreateWorktreeFailsForMissingBranchWhenNotCreating() {
         createEmptyCommit("initial")
 
@@ -259,6 +298,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertFalse(target.exists())
     }
 
+    /**
+     * Confirms delete failures surface when Git cannot execute due to a missing repository.
+     */
     fun testDeleteWorktreeFailureWhenGitCommandFails() {
         createEmptyCommit("initial")
 
@@ -274,6 +316,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue("Failure message should mention delete", message.contains("delete", ignoreCase = true))
     }
 
+    /**
+     * Ensures the service refuses to create a worktree in an existing directory.
+     */
     fun testCreateWorktreeFailsWhenTargetDirectoryAlreadyExists() {
         createEmptyCommit("initial")
 
@@ -287,6 +332,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue(result is WorktreeOperationResult.Failure)
     }
 
+    /**
+     * Verifies fast-forward merges fail when the target diverged and requires a real merge commit.
+     */
     fun testMergeWorktreeFastForwardFailureOnDivergedHistory() {
         val service = GitWorktreeService.getInstance(project)
 
@@ -314,6 +362,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue(result is WorktreeOperationResult.Failure)
     }
 
+    /**
+     * Validates path comparisons respect case-insensitivity on appropriate operating systems.
+     */
     fun testCaseInsensitivePathComparisonUsesNormalizedPaths() {
         val service = GitWorktreeService.getInstance(project)
         val originalOs = System.getProperty("os.name")
@@ -339,6 +390,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         }
     }
 
+    /**
+     * Ensures `hasCommits` returns false when invoked on a non-existent working directory.
+     */
     fun testHasCommitsReturnsFalseForInvalidWorkingDirectory() {
         val service = GitWorktreeService.getInstance(project)
         val method = GitWorktreeService::class.java.getDeclaredMethod("hasCommits", Path::class.java)
@@ -351,6 +405,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertFalse(result)
     }
 
+    /**
+     * Confirms delete operations fail when the project directory cannot be resolved.
+     */
     fun testDeleteWorktreeFailsWhenProjectPathMissing() {
         val service = GitWorktreeService.getInstance(project)
 
@@ -365,6 +422,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         }
     }
 
+    /**
+     * Verifies comparison fails when both worktrees reference an invalid commit range.
+     */
     fun testCompareWorktreesFailureForInvalidRange() {
         val service = GitWorktreeService.getInstance(project)
         val invalid = WorktreeInfo(projectPath, null, "deadbeef")
@@ -374,6 +434,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue(result is WorktreeOperationResult.Failure)
     }
 
+    /**
+     * Ensures merge operations fail when the target worktree directory no longer exists.
+     */
     fun testMergeWorktreeFailsWhenTargetPathMissing() {
         createEmptyCommit("initial")
 
@@ -394,6 +457,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         assertTrue(message.contains("Target worktree path", ignoreCase = true))
     }
 
+    /**
+     * Checks that `isGitAvailable` succeeds inside the test harness environment.
+     */
     fun testIsGitAvailableReturnsTrueOnTestEnvironment() {
         val service = GitWorktreeService.getInstance(project)
         val future = CompletableFuture<Boolean>()
@@ -408,6 +474,9 @@ class GitWorktreeServiceTest : AbstractGitWorktreeTestCase() {
         )
     }
 
+    /**
+     * Confirms the test-only repository override toggles Git detection as expected.
+     */
     fun testForceGitRepositoryOverride() {
         val service = GitWorktreeService.getInstance(project)
 

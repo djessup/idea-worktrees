@@ -8,8 +8,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 
+/**
+ * Focused unit tests validating `determineIfMainWorktree` heuristics for different `.git` layouts.
+ */
 class WorktreeDetectionLogicTest {
 
+    /**
+     * Confirms a `.git` file referencing the repository root counts as the primary worktree.
+     */
     @Test
     fun detectMainWorktreeWhenGitdirFilePointsToRepositoryRoot() {
         val worktreeRoot = Files.createTempDirectory("main-worktree")
@@ -35,6 +41,9 @@ class WorktreeDetectionLogicTest {
         }
     }
 
+    /**
+     * Ensures gitdir entries pointing into the `worktrees` folder are treated as secondary checkouts.
+     */
     @Test
     fun detectSecondaryWorktreeWhenGitdirPointsToWorktreesFolder() {
         val worktreeRoot = Files.createTempDirectory("secondary-worktree")
@@ -63,6 +72,9 @@ class WorktreeDetectionLogicTest {
         }
     }
 
+    /**
+     * Verifies that a physical `.git` directory marks the worktree as the main checkout.
+     */
     @Test
     fun detectMainWorktreeWhenGitDirectoryExists() {
         val worktreeRoot = Files.createTempDirectory("main-directory-worktree")
@@ -81,6 +93,9 @@ class WorktreeDetectionLogicTest {
         }
     }
 
+    /**
+     * Covers the case where `.git` is a symlink into a worktrees folder, which should be secondary.
+     */
     @Test
     fun detectSecondaryWorktreeWhenGitdirSymlinkTargetsWorktrees() {
         val worktreeRoot = Files.createTempDirectory("symlink-worktree")
@@ -146,6 +161,9 @@ class WorktreeDetectionLogicTest {
         }
     }
 
+    /**
+     * Validates the `defaultIfUnknown` flag is respected when no `gitdir` directive is present.
+     */
     @Test
     fun defaultValueUsedWhenGitdirLineMissing() {
         val worktreeRoot = Files.createTempDirectory("missing-directive-worktree")
@@ -171,6 +189,9 @@ class WorktreeDetectionLogicTest {
         }
     }
 
+    /**
+     * Confirms relative gitdir values under `worktrees/` mark the worktree as secondary.
+     */
     @Test
     fun detectSecondaryWorktreeWhenGitdirRelativePathPointsToWorktrees() {
         val worktreeRoot = Files.createTempDirectory("relative-worktree")
@@ -193,6 +214,9 @@ class WorktreeDetectionLogicTest {
         }
     }
 
+    /**
+     * Ensures case-insensitive parsing of the `gitdir` directive still identifies the main worktree.
+     */
     @Test
     fun detectMainWorktreeWithUppercaseGitdirDirective() {
         val worktreeRoot = Files.createTempDirectory("uppercase-gitdir-worktree")
