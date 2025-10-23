@@ -6,8 +6,14 @@ import com.intellij.ui.components.JBLabel
 import java.nio.file.Paths
 import javax.swing.JList
 
+/**
+ * Exercises the list cell renderer used for worktree selection combos.
+ */
 class WorktreeComboBoxRendererTest : BasePlatformTestCase() {
 
+    /**
+     * Confirms the renderer displays the combined worktree label and applies selection colours.
+     */
     fun testRendererFormatsSelectionAndDefaults() {
         val renderer = WorktreeComboBoxRenderer()
         val basePath = Paths.get(requireNotNull(project.basePath))

@@ -11,6 +11,9 @@ import java.io.File
  */
 class CreateWorktreeActionTest : BasePlatformTestCase() {
 
+    /**
+     * Verifies the dialog surfaces an error when the branch field is left blank.
+     */
     fun testValidationRejectsEmptyBranchName() {
         val dialog = createDialog()
 
@@ -23,6 +26,9 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         assertTrue(validationInfo!!.message.contains("Branch name cannot be empty"))
     }
 
+    /**
+     * Ensures the dialog flags an error when no worktree path is provided.
+     */
     fun testValidationRejectsEmptyPath() {
         val dialog = createDialog()
 
@@ -35,6 +41,9 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         assertTrue(validationInfo!!.message.contains("Worktree path cannot be empty"))
     }
 
+    /**
+     * Confirms excessively long paths trigger the Windows MAX_PATH validation message.
+     */
     fun testValidationRejectsPathTooLong() {
         val dialog = createDialog()
 
@@ -50,6 +59,9 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         assertTrue(validationInfo.message.contains("260"))
     }
 
+    /**
+     * Checks that Windows reserved device names are rejected across case and extension variants.
+     */
     fun testValidationRejectsWindowsReservedNames() {
         val dialog = createDialog()
         setBranchName(dialog, "feature/test")
@@ -80,6 +92,9 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         }
     }
 
+    /**
+     * Verifies a well-formed path and branch combination passes validation.
+     */
     fun testValidationAcceptsValidPath() {
         val dialog = createDialog()
 
@@ -90,6 +105,9 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         assertNull("Should accept valid path", validationInfo)
     }
 
+    /**
+     * Ensures names containing reserved substrings (e.g., `CON`) remain valid when part of longer words.
+     */
     fun testValidationAcceptsPathWithReservedNameAsSubstring() {
         val dialog = createDialog()
 
@@ -106,6 +124,9 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         assertNull("Should accept COM10 (not COM1-9)", invokeDoValidate(dialog))
     }
 
+    /**
+     * Confirms the dialog accepts paths at the exact MAX_PATH boundary.
+     */
     fun testValidationAcceptsLongButValidPath() {
         val dialog = createDialog()
 
@@ -122,6 +143,9 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
 
     // Helper methods to access private dialog fields via reflection
 
+    /**
+     * Instantiates the internal `CreateWorktreeDialog` via reflection for validation testing.
+     */
     private fun createDialog(): Any {
         // Use reflection to create the internal CreateWorktreeDialog class from WorktreeOperations
         val dialogClass = Class.forName("au.id.deejay.ideaworktrees.utils.CreateWorktreeDialog")
@@ -135,12 +159,18 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         return constructor.newInstance(project, null, "", "")
     }
 
+    /**
+     * Invokes the dialog's `doValidate` method regardless of visibility.
+     */
     private fun invokeDoValidate(dialog: Any): ValidationInfo? {
         val method = dialog.javaClass.getDeclaredMethod("doValidate")
         method.isAccessible = true
         return method.invoke(dialog) as? ValidationInfo
     }
 
+    /**
+     * Mutates the branch text field via reflection to avoid relying on UI interactions.
+     */
     private fun setBranchName(dialog: Any, value: String) {
         val field = dialog.javaClass.getDeclaredField("branchNameField")
         field.isAccessible = true
@@ -148,6 +178,9 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         textField.text = value
     }
 
+    /**
+     * Updates the worktree path field value programmatically.
+     */
     private fun setWorktreePath(dialog: Any, value: String) {
         val field = dialog.javaClass.getDeclaredField("pathField")
         field.isAccessible = true
@@ -155,4 +188,3 @@ class CreateWorktreeActionTest : BasePlatformTestCase() {
         pathField.text = value
     }
 }
-

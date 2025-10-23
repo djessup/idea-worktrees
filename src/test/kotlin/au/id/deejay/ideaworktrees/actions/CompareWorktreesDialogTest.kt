@@ -10,8 +10,14 @@ import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JComboBox
 
+/**
+ * Validates selection and validation logic inside the compare worktrees dialog.
+ */
 class CompareWorktreesDialogTest : BasePlatformTestCase() {
 
+    /**
+     * Verifies the dialog rejects identical source and target selections yet allows valid pairs.
+     */
     fun testValidationRequiresDistinctSelections() {
         val projectPath = Paths.get(requireNotNull(project.basePath))
         val worktrees = listOf(
